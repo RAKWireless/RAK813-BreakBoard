@@ -1,0 +1,1760 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+    <fileVersion>2</fileVersion>
+    <fileChecksum>1266789179</fileChecksum>
+    <configuration>
+        <name>Debug</name>
+        <outputs>
+            <file>$PROJ_DIR$\..\Apps\Commissioning.h</file>
+            <file>$PROJ_DIR$\..\Apps\sdk_config.h</file>
+            <file>$PROJ_DIR$\..\Apps\main.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\toolchain\iar\iar_startup_nrf52.s</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\toolchain\system_nrf52.c</file>
+            <file>$PROJ_DIR$\..\Board\lora_board\app_lora.c</file>
+            <file>$PROJ_DIR$\..\Board\lora_board\board.c</file>
+            <file>$PROJ_DIR$\..\Board\lora_board\gpio-board.c</file>
+            <file>$PROJ_DIR$\..\Board\lora_board\rtc-board.c</file>
+            <file>$PROJ_DIR$\..\Board\lora_board\spi-board.c</file>
+            <file>$PROJ_DIR$\..\Board\lora_board\sx1276-board.c</file>
+            <file>$PROJ_DIR$\..\Board\lora_board\timer.c</file>
+            <file>$PROJ_DIR$\..\Board\lora_board\utilities.c</file>
+            <file>$PROJ_DIR$\..\Board\lora_board\utils.c</file>
+            <file>$PROJ_DIR$\..\Board\peripherals\lis3dh_driver.c</file>
+            <file>$PROJ_DIR$\..\Board\peripherals\rak_i2c_drv.c</file>
+            <file>$PROJ_DIR$\..\Board\peripherals\rak_i2c_gps_max7.c</file>
+            <file>$PROJ_DIR$\..\Board\peripherals\rak_i2c_lis3dh.c</file>
+            <file>$PROJ_DIR$\..\Board\peripherals\rak_i2c_oled.c</file>
+            <file>$PROJ_DIR$\..\Board\peripherals\rak_i2c_sht31.c</file>
+            <file>$PROJ_DIR$\..\Board\peripherals\rak_spi_drv.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\boards\boards.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\bsp\bsp.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\bsp\bsp_btn_ble.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\bsp\bsp_nfc.c</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\mac\region\Region.c</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\mac\region\RegionAS923.c</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\mac\region\RegionAU915.c</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\mac\region\RegionCommon.c</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\mac\region\RegionEU868.c</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\mac\region\RegionIN865.c</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\mac\region\RegionKR920.c</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\mac\region\RegionUS915-Hybrid.c</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\mac\region\RegionUS915.c</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\mac\LoRaMac.c</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\mac\LoRaMacCrypto.c</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\radio\sx1276\sx1276.c</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\system\crypto\aes.c</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\system\crypto\cmac.c</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\system\gps.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\common\ble_advdata.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\ble_advertising\ble_advertising.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\common\ble_conn_params.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\common\ble_conn_state.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\ble_services\ble_nus\ble_nus.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\common\ble_srv_common.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\gatt_cache_manager.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\gatts_cache_manager.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\id_manager.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\nrf_ble_gatt\nrf_ble_gatt.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\peer_data_storage.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\peer_database.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\peer_id.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\peer_manager.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\pm_buffer.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\pm_mutex.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\security_dispatcher.c</file>
+            <file>$PROJ_DIR$\..\Board\peripherals\lis3dh_driver.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\aes.o</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\radio\sx1276\sx1276Regs-LoRa.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\cmac.o</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\radio\sx1276\sx1276Regs-Fsk.h</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\radio\sx1276\sx1276.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\main.o</file>
+            <file>$PROJ_DIR$\Debug\Exe\rak813_breakboard.out</file>
+            <file>$TOOLKIT_DIR$\inc\c\DLib_float_setup.h</file>
+            <file>$TOOLKIT_DIR$\inc\c\math.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\sx1276.o</file>
+            <file>$TOOLKIT_DIR$\inc\c\string.h</file>
+            <file>$TOOLKIT_DIR$\inc\c\ysizet.h</file>
+            <file>$TOOLKIT_DIR$\inc\c\yvals.h</file>
+            <file>$TOOLKIT_DIR$\inc\c\DLib_Product_string.h</file>
+            <file>$TOOLKIT_DIR$\inc\c\stdint.h</file>
+            <file>$TOOLKIT_DIR$\inc\c\DLib_Defaults.h</file>
+            <file>$TOOLKIT_DIR$\inc\c\ycheck.h</file>
+            <file>$TOOLKIT_DIR$\inc\c\DLib_Product.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\LoRaMac.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\LoRaMacCrypto.o</file>
+            <file>$TOOLKIT_DIR$\inc\c\stdbool.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\gps.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\timer.o</file>
+            <file>$TOOLKIT_DIR$\inc\c\stdio.h</file>
+            <file>$PROJ_DIR$\..\Board\lora_board\board.h</file>
+            <file>$PROJ_DIR$\..\Board\lora_board\timer.h</file>
+            <file>$PROJ_DIR$\..\Board\lora_board\spi-board.h</file>
+            <file>$PROJ_DIR$\..\Board\lora_board\sx1276-board.h</file>
+            <file>$PROJ_DIR$\..\Board\lora_board\utilities.h</file>
+            <file>$PROJ_DIR$\..\Board\lora_board\gpio-board.h</file>
+            <file>$PROJ_DIR$\..\Board\lora_board\rtc-board.h</file>
+            <file>$PROJ_DIR$\..\Board\lora_board\pinName-board.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\system_nrf52.o</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\toolchain\system_nrf52.h</file>
+            <file>$PROJ_DIR$\..\Board\peripherals\rak_i2c_oled.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\ble_advdata.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\ble_conn_params.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\ble_conn_state.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\ble_srv_common.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\rak_i2c_drv.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\rak_i2c_oled.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\rak_i2c_lis3dh.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\rak_i2c_gps_max7.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\bsp.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\bsp_nfc.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\bsp_btn_ble.o</file>
+            <file>$TOOLKIT_DIR$\inc\c\DLib_Product_stdlib.h</file>
+            <file>$TOOLKIT_DIR$\inc\c\stdlib.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\Region.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_sdh_ble.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_memobj.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_pwr_mgmt.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_section_iter.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_strerror.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_log_backend_uart.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_log_default_backends.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_log_str_formatter.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\SEGGER_RTT.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_log_frontend.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\rak813_breakboard.pbd</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_balloc.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_atfifo.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\sdk_mapped_flags.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_fstorage.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_log_backend_serial.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_fstorage_sd.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\main.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\system_nrf52.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\app_lora.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\board.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\gpio-board.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\rtc-board.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\spi-board.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\sx1276-board.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\timer.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\utilities.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\utils.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\rak_i2c_drv.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\rak_i2c_gps_max7.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\rak_i2c_lis3dh.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\rak_i2c_oled.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\rak_i2c_sht31.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\rak_spi_drv.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\boards.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\bsp.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\bsp_nfc.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\bsp_btn_ble.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\Region.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\RegionAS923.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\RegionAU915.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\RegionCommon.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\RegionEU868.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\RegionIN865.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_log_backend_rtt.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\RegionKR920.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\RegionUS915-Hybrid.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\RegionUS915.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\LoRaMacCrypto.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\LoRaMac.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\sx1276.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\aes.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\cmac.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\gps.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\ble_advertising.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\ble_advdata.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\ble_conn_params.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\ble_conn_state.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\ble_nus.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\ble_srv_common.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\gatt_cache_manager.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\gatts_cache_manager.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\id_manager.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_ble_gatt.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\peer_data_storage.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\peer_database.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\peer_id.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\peer_manager.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\pm_buffer.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\pm_mutex.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\security_dispatcher.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\security_manager.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_drv_clock.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_drv_common.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_drv_gpiote.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_drv_rtc.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_drv_spi.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_drv_twi.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_drv_uart.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\app_button.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\app_error.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\app_error_weak.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\app_fifo.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\app_scheduler.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\app_timer.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\app_uart_fifo.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\app_util_platform.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\fds.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\SEGGER_RTT_printf.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_sdh_soc.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_sdh.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_assert.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\RTT_Syscalls_IAR.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\RTT_Syscalls_IAR.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_fprintf_format.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_fprintf.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_fprintf_format.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_fprintf.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\retarget.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\retarget.o</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\common\ble_srv_common.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\common\ble_advdata.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\device\compiler_abstraction.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\spi_master\nrf_drv_spi.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\device\nrf.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\device\nrf52.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\app_button.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\app_fifo.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\app_scheduler.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\app_uart_fifo.o</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\twi_master\nrf_drv_twi.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\nrf_assert.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\app_util_platform.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\app_util.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\ble_nus.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\app_timer.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_balloc.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\app_error.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\app_error_weak.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_pwr_mgmt.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_assert.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\sdk_mapped_flags.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\app_util_platform.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_ble_gatt.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_strerror.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\fds.o</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\softdevice\common\nrf_sdh_ble.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\ble_advertising\ble_advertising.h</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\radio\radio.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\common\ble_conn_params.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\softdevice\common\nrf_sdh_soc.h</file>
+            <file>$PROJ_DIR$\..\Board\peripherals\rak_i2c_sht31.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\softdevice\common\nrf_sdh.h</file>
+            <file>$PROJ_DIR$\..\Board\custom_board.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_memobj\nrf_memobj.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\strerror\nrf_strerror.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\softdevice\s132\headers\ble_ranges.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\softdevice\s132\headers\ble_types.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\softdevice\s132\headers\nrf_svc.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\softdevice\s132\headers\ble_gap.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\softdevice\s132\headers\ble_l2cap.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\softdevice\s132\headers\ble_err.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\softdevice\s132\headers\ble_gatt.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\softdevice\s132\headers\ble.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\softdevice\s132\headers\ble_gattc.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_log_str_formatter.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_log_backend_uart.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_log_backend_rtt.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_log_backend_serial.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_log_frontend.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_log_default_backends.o</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\softdevice\s132\headers\nrf_error.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_section_iter.o</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\fstorage\nrf_fstorage_sd.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_memobj.o</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\device\nrf51_to_nrf52.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\toolchain\cmsis\include\core_cm4.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\toolchain\cmsis\include\core_cmInstr.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\toolchain\cmsis\include\core_cmSimd.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\softdevice\s132\headers\nrf_nvic.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\ble_advertising.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\gatt_cache_manager.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\id_manager.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\gatts_cache_manager.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\peer_data_storage.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\pm_mutex.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\security_dispatcher.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\peer_database.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\peer_id.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\pm_buffer.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\peer_manager.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\lis3dh_driver.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\lis3dh_driver.pbi</file>
+            <file>$PROJ_DIR$\Debug\Obj\security_manager.o</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\app_error.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\sdk_errors.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\nordic_common.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\sdk_common.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\sdk_os.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\button\app_button.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\uart\app_uart.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\timer\app_timer.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\balloc\nrf_balloc.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\utils.o</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\delay\nrf_delay.h</file>
+            <file>$PROJ_DIR$\Debug\Exe\rak813_breakboard.hex</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_section_vars\nrf_section_iter.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\hal\nrf_peripherals.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\hal\nrf_twi.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\hal\nrf_twim.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\hal\nrf_spi.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\hal\nrf_spim.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\device\nrf52832_peripherals.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\hal\nrf_gpio.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\fstorage\nrf_fstorage.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\nrf_log_backend_interface.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\nrf_log_default_backends.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\src\nrf_log_internal.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\nrf_log.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\nrf_log_ctrl.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\src\nrf_log_ctrl_internal.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\device\nrf52_bitfields.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\app_error_weak.h</file>
+            <file>$TOOLKIT_DIR$\inc\c\intrinsics.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\device\nrf52_name_change.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\toolchain\cmsis\include\core_cmFunc.h</file>
+            <file>$TOOLKIT_DIR$\inc\c\cmsis_iar.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\softdevice\s132\headers\ble_hci.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\nrf_ble_gatt\nrf_ble_gatt.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\ble_services\ble_nus\ble_nus.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_section_vars\nrf_section.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_atfifo.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_fstorage.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_fstorage_sd.o</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\softdevice\s132\headers\nrf_error_soc.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\softdevice\s132\headers\nrf_soc.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\softdevice\s132\headers\ble_gatts.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\sdk_macros.h</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\system\gps.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\SEGGER_RTT.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\SEGGER_RTT_printf.o</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\external\segger_rtt\SEGGER_RTT_Conf.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\external\segger_rtt\SEGGER_RTT.h</file>
+            <file>$PROJ_DIR$\..\Board\lora_board\app_config.h</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\mac\region\Region.h</file>
+            <file>$PROJ_DIR$\..\LoRa_Lib\mac\LoRaMac.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\bsp\bsp.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\rak_spi_drv.o</file>
+            <file>$PROJ_DIR$\..\Board\peripherals\rak_i2c_drv.h</file>
+            <file>$PROJ_DIR$\..\Board\peripherals\rak_i2c_gps_max7.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\iar_startup_nrf52.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\spi-board.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\rtc-board.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\gpio-board.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\app_lora.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\board.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\sx1276-board.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\utilities.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_drv_common.o</file>
+            <file>$TOOLKIT_DIR$\inc\c\stddef.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_drv_gpiote.o</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\wdt\nrf_drv_wdt.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\hal\nrf_wdt.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\mem_manager\mem_manager.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\hal\nrf_gpiote.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\gpiote\nrf_drv_gpiote.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\security_manager.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\clock\nrf_drv_clock.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\common\nrf_drv_common.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\gpiote\nrf_drv_gpiote.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\rtc\nrf_drv_rtc.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\spi_master\nrf_drv_spi.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\twi_master\nrf_drv_twi.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\uart\nrf_drv_uart.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\button\app_button.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\app_error.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\app_error_weak.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\fifo\app_fifo.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\scheduler\app_scheduler.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\timer\app_timer.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\uart\app_uart_fifo.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\app_util_platform.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\fds\fds.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\nrf_assert.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\atomic_fifo\nrf_atfifo.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\balloc\nrf_balloc.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\external\fprintf\nrf_fprintf.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\external\fprintf\nrf_fprintf_format.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\fstorage\nrf_fstorage.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\fstorage\nrf_fstorage_sd.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_memobj\nrf_memobj.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\pwr_mgmt\nrf_pwr_mgmt.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_section_vars\nrf_section_iter.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\strerror\nrf_strerror.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\uart\retarget.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\sdk_mapped_flags.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\src\nrf_log_backend_rtt.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\src\nrf_log_backend_serial.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\src\nrf_log_backend_uart.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\src\nrf_log_default_backends.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\src\nrf_log_frontend.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\src\nrf_log_str_formatter.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\external\segger_rtt\RTT_Syscalls_IAR.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\external\segger_rtt\SEGGER_RTT.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\external\segger_rtt\SEGGER_RTT_printf.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\softdevice\common\nrf_sdh.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\softdevice\common\nrf_sdh_ble.c</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\softdevice\common\nrf_sdh_soc.c</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_drv_clock.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_drv_twi.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_drv_uart.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_drv_spi.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_drv_rtc.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_sdh_soc.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_sdh.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\nrf_sdh_ble.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\rak_i2c_sht31.o</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\boards\boards.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\boards.o</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\libraries\bsp\bsp_btn_ble.h</file>
+            <file>$PROJ_DIR$\Debug\Obj\RegionAS923.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\RegionAU915.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\RegionCommon.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\RegionEU868.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\RegionIN865.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\RegionKR920.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\RegionUS915-Hybrid.o</file>
+            <file>$PROJ_DIR$\Debug\Obj\RegionUS915.o</file>
+            <file>$PROJ_DIR$\..\Board\lora_board\utils.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\rtc\nrf_drv_rtc.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\common\nrf_drv_common.h</file>
+            <file>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\hal\nrf_rtc.h</file>
+        </outputs>
+        <file>
+            <name>[ROOT_NODE]</name>
+            <outputs>
+                <tool>
+                    <name>ILINK</name>
+                    <file> 64</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\Apps\main.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 124</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 63</file>
+                </tool>
+            </outputs>
+            <inputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 81 211 282 78 82 69 288 74 240 68 219 208 217 71 85 212 220 321 218 336 72 237 406 84 404 209 263 70 283 298 299 243 244 245 415 236 301 287 306 238 57 291 305 83 235 322 233 309 262 265 258 317 61 281 1 293 249 246 250 289 294 325 314 234 239 315 316 303 335 92 73 75 105 86 87 88 62 260 0 308 311 91 264 313 330 242 285 346 104 210 297 300 323 248 207 333 302 241 312 310 284 304 324 89 59 329 266 328 247 251 286 307 295 296</file>
+                </tool>
+            </inputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\toolchain\iar\iar_startup_nrf52.s</name>
+            <outputs>
+                <tool>
+                    <name>AARM</name>
+                    <file> 337</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\toolchain\system_nrf52.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 125</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 90</file>
+                </tool>
+            </outputs>
+            <inputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 311 264 310 72 211 74 308 91 265 70 313 78 73 75 212 262 209 263 312</file>
+                </tool>
+            </inputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\Board\lora_board\app_lora.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 126</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 341</file>
+                </tool>
+            </outputs>
+            <inputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 68 247 74 282 72 308 300 71 404 346 244 305 70 84 240 283 281 211 105 325 57 81 85 91 264 220 288 1 258 241 82 331 303 69 65 83 235 322 233 311 313 330 242 285 104 210 297 294 245 218 78 317 243 302 66 415 332 0 306 238 73 75 86 87 88 62 301 239 260 309 212 262 209 263 265 298 299 61 321 336 250 251 249 289 219 312 310 284 304 324 89 59 287 329 266 328 293 246 323 248 307</file>
+                </tool>
+            </inputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\Board\lora_board\board.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 127</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 342</file>
+                </tool>
+            </outputs>
+            <inputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 258 241 322 313 78 282 1 68 83 233 308 242 285 283 281 328 244 245 352 305 235 220 211 91 312 70 330 69 72 219 209 294 284 350 81 84 85 404 240 74 73 75 311 310 59 329 266 321 317 293 251 243 246 212 288 348 306 105 86 87 88 62 301 239 260 0 309 262 263 264 265 89 346 287 57 247 248 300 307 82 304 324 71 104 210 297 298 299 61 218 336 250 249 323 351 349 302 289</file>
+                </tool>
+            </inputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\Board\lora_board\gpio-board.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 128</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 340</file>
+                </tool>
+            </outputs>
+            <inputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 294 245 211 84 240 74 73 311 305 72 404 81 310 284 1 300 218 78 243 249 85 75 283 70 104 210 297 317 323 83 235 322 220 233 308 91 312 313 282 71 346 288 281 258 105 246 244 351 352 86 87 88 62 301 239 260 0 309 69 212 262 209 263 264 265 304 324 298 299 61 321 336 68 250 247 82 330 242 285 89 59 287 329 57 219 266 328 293 251 248</file>
+                </tool>
+            </inputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\Board\lora_board\rtc-board.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 129</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 339</file>
+                </tool>
+            </outputs>
+            <inputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 285 313 308 211 209 72 91 265 70 416 74 73 75 81 283 311 264 310 258 330 417 68 69 281 218 418 78 282 309 212 262 263 312 1 284 220 299 88 324 71 346 294</file>
+                </tool>
+            </inputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\Board\lora_board\spi-board.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 130</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 338</file>
+                </tool>
+            </outputs>
+            <inputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 244 328 245 281 211 242 313 285 283 78 86 239 309 69 212 258 88 288 0 70 209 263 264 330 1 72 219 68 105 87 62 301 260 282 74 262 265 59 329 266 321 317 293 251 243 246 210 305 81 83 84 235 85 322 404 220 233 240 73 75 308 311 91 312 310 284 89 294 346 287 57 247 248 82 304 324 71 104 297 298 299 61 300 218 336 250 249 323</file>
+                </tool>
+            </inputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\Board\lora_board\sx1276-board.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 131</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 343</file>
+                </tool>
+            </outputs>
+            <inputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 244 328 245 283 281 242 78 72 285 87 260 262 258 105 62 301 282 74 265 330 69 1 219 209 86 88 211 288 239 0 70 309 212 263 264 313 68 59 329 266 321 317 293 251 243 246 235 85 305 81 83 84 322 404 220 233 240 73 75 308 311 91 312 310 284 89 294 346 287 57 247 248 82 304 324 71 104 210 297 298 299 61 300 218 336 250 249 323</file>
+                </tool>
+            </inputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\Board\lora_board\timer.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 132</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 80</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\Board\lora_board\utilities.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 133</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 344</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\Board\lora_board\utils.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 134</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 290</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\Board\peripherals\lis3dh_driver.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 279</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 278</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\Board\peripherals\rak_i2c_drv.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 135</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 97</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\Board\peripherals\rak_i2c_gps_max7.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 136</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 100</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\Board\peripherals\rak_i2c_lis3dh.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 137</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 99</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\Board\peripherals\rak_i2c_oled.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 138</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 98</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\Board\peripherals\rak_i2c_sht31.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 139</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 403</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\Board\peripherals\rak_spi_drv.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 140</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 334</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\boards\boards.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 141</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 405</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\bsp\bsp.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 142</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 101</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\bsp\bsp_btn_ble.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 144</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 103</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\bsp\bsp_nfc.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 143</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 102</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\LoRa_Lib\mac\region\Region.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 145</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 106</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\LoRa_Lib\mac\region\RegionAS923.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 146</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 407</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\LoRa_Lib\mac\region\RegionAU915.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 147</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 408</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\LoRa_Lib\mac\region\RegionCommon.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 148</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 409</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\LoRa_Lib\mac\region\RegionEU868.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 149</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 410</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\LoRa_Lib\mac\region\RegionIN865.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 150</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 411</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\LoRa_Lib\mac\region\RegionKR920.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 152</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 412</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\LoRa_Lib\mac\region\RegionUS915-Hybrid.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 153</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 413</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\LoRa_Lib\mac\region\RegionUS915.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 154</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 414</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\LoRa_Lib\mac\LoRaMac.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 156</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 76</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\LoRa_Lib\mac\LoRaMacCrypto.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 155</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 77</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\LoRa_Lib\radio\sx1276\sx1276.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 157</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 67</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\LoRa_Lib\system\crypto\aes.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 158</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 58</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\LoRa_Lib\system\crypto\cmac.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 159</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 60</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\LoRa_Lib\system\gps.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 160</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 79</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\ble\common\ble_advdata.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 162</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 93</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\ble\ble_advertising\ble_advertising.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 161</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 267</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\ble\common\ble_conn_params.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 163</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 94</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\ble\common\ble_conn_state.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 164</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 95</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\ble\ble_services\ble_nus\ble_nus.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 165</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 221</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\ble\common\ble_srv_common.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 166</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 96</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\gatt_cache_manager.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 167</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 268</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\gatts_cache_manager.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 168</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 270</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\id_manager.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 169</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 269</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\ble\nrf_ble_gatt\nrf_ble_gatt.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 170</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 230</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\peer_data_storage.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 171</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 271</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\peer_database.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 172</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 274</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\peer_id.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 173</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 275</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\peer_manager.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 174</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 277</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\pm_buffer.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 175</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 276</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\pm_mutex.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 176</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 272</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\security_dispatcher.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 177</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 273</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\Debug\Exe\rak813_breakboard.out</name>
+            <outputs>
+                <tool>
+                    <name>OBJCOPY</name>
+                    <file> 292</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager\security_manager.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 178</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 280</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\clock\nrf_drv_clock.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 179</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 395</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\common\nrf_drv_common.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 180</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 345</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\gpiote\nrf_drv_gpiote.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 181</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 347</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\rtc\nrf_drv_rtc.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 182</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 399</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\spi_master\nrf_drv_spi.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 183</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 398</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\twi_master\nrf_drv_twi.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 184</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 396</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\drivers_nrf\uart\nrf_drv_uart.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 185</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 397</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\button\app_button.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 186</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 213</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\app_error.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 187</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 224</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\app_error_weak.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 188</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 225</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\fifo\app_fifo.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 189</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 214</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\scheduler\app_scheduler.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 190</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 215</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\timer\app_timer.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 191</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 222</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\uart\app_uart_fifo.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 192</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 216</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\app_util_platform.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 193</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 229</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\fds\fds.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 194</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 232</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\nrf_assert.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 198</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 227</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\atomic_fifo\nrf_atfifo.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 119</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 318</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\balloc\nrf_balloc.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 118</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 223</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\external\fprintf\nrf_fprintf.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 202</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 204</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\external\fprintf\nrf_fprintf_format.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 203</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 201</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\fstorage\nrf_fstorage.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 121</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 319</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\fstorage\nrf_fstorage_sd.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 123</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 320</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_memobj\nrf_memobj.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 108</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 261</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\pwr_mgmt\nrf_pwr_mgmt.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 109</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 226</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_section_vars\nrf_section_iter.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 110</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 259</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\strerror\nrf_strerror.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 111</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 231</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\uart\retarget.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 205</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 206</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\sdk_mapped_flags.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 120</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 228</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\src\nrf_log_backend_rtt.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 151</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 254</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\src\nrf_log_backend_serial.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 122</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 255</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\src\nrf_log_backend_uart.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 112</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 253</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\src\nrf_log_default_backends.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 113</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 257</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\src\nrf_log_frontend.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 116</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 256</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\src\nrf_log_str_formatter.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 114</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 252</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\external\segger_rtt\RTT_Syscalls_IAR.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 199</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 200</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\external\segger_rtt\SEGGER_RTT.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 115</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 326</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\external\segger_rtt\SEGGER_RTT_printf.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 195</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 327</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\softdevice\common\nrf_sdh.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 197</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 401</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\softdevice\common\nrf_sdh_ble.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 107</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 402</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\nRF_Lib\components\softdevice\common\nrf_sdh_soc.c</name>
+            <outputs>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 196</file>
+                </tool>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 400</file>
+                </tool>
+            </outputs>
+        </file>
+    </configuration>
+    <configuration>
+        <name>Release</name>
+        <outputs />
+        <forcedrebuild>
+            <name>[MULTI_TOOL]</name>
+            <tool>ILINK</tool>
+        </forcedrebuild>
+    </configuration>
+</project>
