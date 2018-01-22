@@ -1,5 +1,5 @@
 # RAK813-BreakBoard <br />
-<img src="https://raw.githubusercontent.com/RAKWireless/RAK813-BreakBoard/master/Doc/img/substance.jpg" width=60% height=60% />
+<img src="https://raw.githubusercontent.com/RAKWireless/RAK813-BreakBoard/master/Doc/img/substance.jpg" width=30% height=30% />
 
 ### chip: RAK813(nRF52832+SX1276) + GPS + HT + MEMS
 #### Support IAR8.11/Keil5
