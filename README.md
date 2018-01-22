@@ -22,7 +22,7 @@ http://www.rakwireless.com/en/download/RAK813%20BreakBoard/Software%20Developmen
   * Run the installation program with default configurations
 
 #### 3.  Download Bluetooth protocol station
-  * Connect the j-link and RAK813 BreakBoard
+  * Connect the j-link and RAK813 BreakBoard \\
 ![](https://raw.githubusercontent.com/RAKWireless/RAK813-BreakBoard/master/Doc/img/j-link%20Connect.png)
   * Open the nRFgo Stdio, Select the "nRF5X Programming"
 ![](https://raw.githubusercontent.com/RAKWireless/RAK813-BreakBoard/master/Doc/img/nRFgo%20Stdio%20programming.png)
