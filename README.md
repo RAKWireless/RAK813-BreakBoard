@@ -5,4 +5,6 @@
 The document you can download in the RAK Document Center:
 http://www.rakwireless.com/en/download/RAK813%20BreakBoard/Software%20Development
 
-`` 11223 ``
+## Development environment
+### 1 Install j-link driver
+
