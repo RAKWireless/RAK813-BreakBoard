@@ -1,6 +1,5 @@
 # RAK813-BreakBoard <br />
-![](https://raw.githubusercontent.com/RAKWireless/RAK813-BreakBoard/master/Doc/img/substance.jpg )
-<img src="https://raw.githubusercontent.com/RAKWireless/RAK813-BreakBoard/master/Doc/img/substance.jpg" width=256 height=256 />
+<img src="https://raw.githubusercontent.com/RAKWireless/RAK813-BreakBoard/master/Doc/img/substance.jpg" width=50% height=50% />
 ### chip: RAK813(nRF52832+SX1276) + GPS + HT + MEMS
 #### Support IAR8.11/Keil5
 #### Bace on nRF5_SDK_14.0.0 and semtech LoRaWAN1.0.2
