@@ -185,6 +185,7 @@ extern void cli_process(void);
 
 static const lora_cfg_t g_def_cfg =
 {
+    .sof     = 0x00,
     .dev_eui = LORAWAN_DEVICE_EUI,
     .app_eui = LORAWAN_APPLICATION_EUI,
     .app_key = LORAWAN_APPLICATION_KEY,
@@ -202,8 +203,8 @@ NRF_FSTORAGE_DEF(nrf_fstorage_t fstorage) =
     * You must set these manually, even at runtime, before nrf_fstorage_init() is called.
     * The function nrf5_flash_end_addr_get() can be used to retrieve the last address on the
     * last page of flash available to write data. */
-    .start_addr = 0x3e000,//0x0007F000,
-    .end_addr   = 0x3f000//0x00080000,
+    .start_addr = 0x0007F000,
+    .end_addr   = 0x00080000,
 };
 
 /*!
@@ -299,22 +300,24 @@ void u_fs_init()
     
 }
 
-void u_fs_check_lorab_cfg(lorab_cfg_t *cfg)
+void u_fs_check_lora_cfg(lora_cfg_t *cfg)
 {
+    printf("%x\r\n",cfg->sof);
     if(cfg->sof != 0x55)
     {
-        memcpy(&cfg->lora_cfg,&g_def_cfg,sizeof(g_def_cfg));
+        memcpy((uint8_t*)cfg,&g_def_cfg,sizeof(g_def_cfg));
     }
 }
 
-void u_fs_read_lorab_cfg(lorab_cfg_t *cfg)
-{	
+void u_fs_read_lora_cfg(lora_cfg_t *cfg)
+{
     ret_code_t rc;
-    rc = nrf_fstorage_read(&fstorage, fstorage.start_addr, cfg, sizeof(lorab_cfg_t));
+    //rc = nrf_fstorage_erase(&fstorage, fstorage.start_addr, 1, NULL);
+    rc = nrf_fstorage_read(&fstorage, fstorage.start_addr, cfg, sizeof(lora_cfg_t));
     APP_ERROR_CHECK(rc);
 }
 
-void u_fs_write_lorab_cfg(lorab_cfg_t *cfg)
+void u_fs_write_lora_cfg(lora_cfg_t *cfg)
 {
     ret_code_t rc;
     
@@ -324,7 +327,7 @@ void u_fs_write_lorab_cfg(lorab_cfg_t *cfg)
     //wait_for_flash_ready(&fstorage);
 
     cfg->sof = 0x55;
-    rc = nrf_fstorage_write(&fstorage, fstorage.start_addr, cfg, sizeof(lorab_cfg_t), NULL);
+    rc = nrf_fstorage_write(&fstorage, fstorage.start_addr, cfg, sizeof(lora_cfg_t), NULL);
     NRF_LOG_INFO("write %d", rc);
     APP_ERROR_CHECK(rc);
     wait_for_flash_ready(&fstorage);
@@ -341,14 +344,14 @@ void dump_hex2str(uint8_t *buf , uint8_t len)
     printf("\r\n");
 }
 
-
+bool GPS_GETFAIL = false;
 static void PrepareTxFrame( uint8_t port )
 {
 #if 1
     double  latitude, longitude = 0;
     int16_t altitudeGps = 0xFFFF;
     float  tempr ;
-	  float  hum ;
+    float  hum ;
     uint8_t ret;
     uint16_t bat = 255;
     int8_t response;
@@ -362,9 +365,11 @@ static void PrepareTxFrame( uint8_t port )
         {
             ret = GpsGetLatestGpsPositionDouble( &latitude, &longitude );
             altitudeGps = GpsGetLatestGpsAltitude( );                           // in m
-            NRF_LOG_INFO("latitude: %f, longitude: %f , altitudeGps: %d \n", latitude, longitude, altitudeGps);	
+            	
             if (ret == SUCCESS) 
             {
+                printf("LoRa uplink GPS latitude: %f, longitude: %f , altitudeGps: %d \n", latitude, longitude, altitudeGps);
+                
                 AppData[0] = 0x01;
                 AppData[1] = 0x88;
                 AppData[2] = ((int32_t)(latitude*10000) >> 16) & 0xFF;
@@ -379,6 +384,7 @@ static void PrepareTxFrame( uint8_t port )
                 AppDataSize = 11;
             }	else {
                 AppDataSize = 0;
+                GPS_GETFAIL = true;
             }			
         }
         break;
@@ -394,14 +400,17 @@ static void PrepareTxFrame( uint8_t port )
                 //printf("temperature:%.1fC , humidity£º%.1f%\0",per_data.HT_temperature,per_data.HT_humidity);
                // Write_OLED_string("HT UPDATE");
             }
+            
+            printf("LoRa uplink HT tempr: %.1f hum: %.1f% \r\n", tempr, hum);
+            //printf("temperature:%.1fC , humidity£º%.1f%\r\n\0",per_data.HT_temperature,per_data.HT_humidity);
+            
             AppData[2] = ((int16_t)(tempr*10) >> 8) & 0xFF;
             AppData[3] = (int16_t)(tempr*10)  & 0xFF;
             AppData[4] = 0x02;
             AppData[5] = 0x68;
             AppData[6] = (int8_t)(hum*2)  & 0xFF; 
-
+            //printf("LoRa uplink HT tempr: %f  hum:%d% \r\n", tempr, hum);
             AppDataSize = 7;
-            NRF_LOG_INFO("tempr: %d Bat: %dmv\r\n", tempr, bat);
         }
         break;
         //cayenne LPP Acceleration
@@ -412,6 +421,7 @@ static void PrepareTxFrame( uint8_t port )
             response = LIS3DH_GetAccAxesRaw(&data);
             if(response==1){
                 printf("LoRa uplink ACC X=%d Y=%d Z=%d\r\n", data.AXIS_X, data.AXIS_Y, data.AXIS_Z);
+                
                 AppData[2] = (data.AXIS_X*1000)>>8;
                 AppData[3] = data.AXIS_X*1000;
                 AppData[4] = (data.AXIS_Y*1000)>>8;
@@ -420,7 +430,7 @@ static void PrepareTxFrame( uint8_t port )
                 AppData[7] = data.AXIS_Z*1000;
             }
             AppDataSize = 8;
-            NRF_LOG_INFO("ACC X:%04X Y:%04X Z:%04X\r\n", AppData[3]<<8 | AppData[2], AppData[5]<<8 | AppData[4], AppData[7]<<8 | AppData[6]);
+            //NRF_LOG_INFO("ACC X:%04X Y:%04X Z:%04X\r\n", AppData[3]<<8 | AppData[2], AppData[5]<<8 | AppData[4], AppData[7]<<8 | AppData[6]);
         }
         break;
       case 224:
@@ -845,8 +855,6 @@ static void MlmeConfirm( MlmeConfirm_t *mlmeConfirm )
 }
 
 
-lora_cfg_t *lora_cfg=&g_lorab_cfg.lora_cfg;
-
 LoRaMacPrimitives_t LoRaMacPrimitives;
 LoRaMacCallback_t LoRaMacCallbacks;
 MibRequestConfirm_t mibReq;
@@ -857,6 +865,9 @@ void lora_init()
     BoardInitPeriph( );
     DeviceState = DEVICE_STATE_INIT;
 }
+
+
+lora_cfg_t *lora_cfg=&g_lora_cfg;
 
 void lora_process()
 {
@@ -1011,11 +1022,21 @@ void lora_process()
         {
             if( NextTx == true )
             {
-                PrepareTxFrame( ++AppPort );
+                PrepareTxFrame( AppPort );
+                if (GPS_GETFAIL == true)
+                {
+                    GPS_GETFAIL = false;
+                }
+                else
+                {
+                    NextTx = SendFrame( );
+                }
+                
+                AppPort++;
                 if (AppPort >=5) {
                     AppPort = 2;
                 }
-                NextTx = SendFrame( );
+                
             }
             if( ComplianceTest.Running == true )
             {

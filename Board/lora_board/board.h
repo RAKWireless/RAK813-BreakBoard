@@ -182,9 +182,9 @@ void BoardInitPeriph( void );
 uint16_t BoardBatteryMeasureVolage( void );
 
 void u_fs_init();
-void u_fs_check_lorab_cfg(lorab_cfg_t *cfg);
-void u_fs_read_lorab_cfg(lorab_cfg_t *cfg);
-void u_fs_write_lorab_cfg(lorab_cfg_t *cfg);
+void u_fs_check_lora_cfg(lora_cfg_t *cfg);
+void u_fs_read_lora_cfg(lora_cfg_t *cfg);
+void u_fs_write_lora_cfg(lora_cfg_t *cfg);
 void dump_hex2str(uint8_t *buf , uint8_t len);
 
 void lora_init();

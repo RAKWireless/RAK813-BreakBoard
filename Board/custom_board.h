@@ -154,7 +154,7 @@ typedef struct{
 }tracker_data_t;
 
 typedef struct {
-        
+        uint8_t sof;
         uint8_t dev_eui[8];
         uint8_t app_eui[8];
         uint8_t app_key[16];
@@ -163,12 +163,8 @@ typedef struct {
         uint8_t appskey[16];
 } lora_cfg_t;
 
-typedef struct {
-    uint8_t sof;   // 0x55 
-    lora_cfg_t lora_cfg;
-} lorab_cfg_t;
 
-extern lorab_cfg_t     g_lorab_cfg;
+extern lora_cfg_t     g_lora_cfg;
 
 typedef struct {
         double gps_longitude;

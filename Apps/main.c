@@ -131,7 +131,7 @@ static ble_uuid_t m_adv_uuids[]          =                                      
 ////static nrf_ble_qwrs_t m_qwrs;
 //
 
-lorab_cfg_t		g_lorab_cfg;																													/**< lorab board config param.*/
+lora_cfg_t		g_lora_cfg;																													/**< lorab board config param.*/
 bool loraconfigupdataflg = false;
 
 /**@brief Function for assert macro callback.
@@ -193,28 +193,28 @@ static void gap_params_init(void)
 /**@snippet [Handling the data received over BLE] */
 
 
-int set_handler(int argc, char* argv[], lorab_cfg_t* cfg_info)
+int set_handler(int argc, char* argv[], lora_cfg_t* cfg_info)
 {
     
     NRF_LOG_INFO("%s=%s", argv[0], argv[1]);
     
     if (strcmp(argv[0], "dev_eui") == 0) {
-        StrToHex((char *)cfg_info->lora_cfg.dev_eui, argv[1], 8);
+        StrToHex((char *)cfg_info->dev_eui, argv[1], 8);
     }
     else if (strcmp(argv[0], "app_eui") == 0) {
-        StrToHex((char *)cfg_info->lora_cfg.app_eui, argv[1], 8);
+        StrToHex((char *)cfg_info->app_eui, argv[1], 8);
     }
     else if (strcmp(argv[0], "app_key") == 0) {
-        StrToHex((char *)cfg_info->lora_cfg.app_key, argv[1], 16);
+        StrToHex((char *)cfg_info->app_key, argv[1], 16);
     }
     else if (strcmp(argv[0], "dev_addr") == 0) {
-        cfg_info->lora_cfg.dev_addr = strtoul(argv[1], NULL, 16);
+        cfg_info->dev_addr = strtoul(argv[1], NULL, 16);
     }
     else if (strcmp(argv[0], "nwkskey") == 0) {
-        StrToHex((char *)cfg_info->lora_cfg.nwkskey, argv[1], 16);
+        StrToHex((char *)cfg_info->nwkskey, argv[1], 16);
     }
     else if (strcmp(argv[0], "appskey") == 0) {
-        StrToHex((char *)cfg_info->lora_cfg.appskey, argv[1], 16);
+        StrToHex((char *)cfg_info->appskey, argv[1], 16);
     }
     else
     {
@@ -223,7 +223,7 @@ int set_handler(int argc, char* argv[], lorab_cfg_t* cfg_info)
     return 0;
 }
 
-int  parse_lora_config(char* str, lorab_cfg_t *cfg)
+int  parse_lora_config(char* str, lora_cfg_t *cfg)
 {
     int argc;
     char* buf, *temp;
@@ -281,7 +281,7 @@ static void nus_data_handler(ble_nus_evt_t * p_evt)
         NRF_LOG_DEBUG("recv len=%d", p_evt->params.rx_data.length);
         if(strncmp((char*)p_evt->params.rx_data.p_data, "lora_cfg:", strlen("lora_cfg:")) == 0)
         {
-            parse_lora_config((char*)p_evt->params.rx_data.p_data+strlen("lora_cfg:"), &g_lorab_cfg);
+            parse_lora_config((char*)p_evt->params.rx_data.p_data+strlen("lora_cfg:"), &g_lora_cfg);
             loraconfigupdataflg = true;				
         }
         else
@@ -957,9 +957,10 @@ void nRF_lora_init()
 {
     /* load lora configuration*/
     u_fs_init();
-    u_fs_read_lorab_cfg(&g_lorab_cfg);
-    u_fs_check_lorab_cfg(&g_lorab_cfg);
-    lora_init(&g_lorab_cfg);
+    memset((uint8_t*)&g_lora_cfg,0,sizeof(g_lora_cfg));
+    u_fs_read_lora_cfg(&g_lora_cfg);
+    u_fs_check_lora_cfg(&g_lora_cfg);
+    lora_init(&g_lora_cfg);
     printf("LoRa init success.\r\n");
 }
 void nRF_timer_init()
@@ -1000,7 +1001,7 @@ int main(void)
         
         if(loraconfigupdataflg)
         {
-            u_fs_write_lorab_cfg(&g_lorab_cfg);
+            u_fs_write_lora_cfg(&g_lora_cfg);
             loraconfigupdataflg = false;
         }
         if (readgpsdatastreamflag)
