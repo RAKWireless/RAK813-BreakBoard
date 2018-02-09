@@ -38,10 +38,7 @@ const struct Radio_s Radio =
     SX1276SetPublicNetwork
 };
 
-/*!
- * Antenna switch GPIO pins objects
- */
-Gpio_t AntSwitchHf;
+
 
 void SX1276IoInit( void )
 {
@@ -52,13 +49,11 @@ void SX1276IoInit( void )
     GpioInit( &SX1276.Reset, RADIO_RESET, PIN_OUTPUT, PIN_OPEN_DRAIN, PIN_NO_PULL, 1 );
 	// Turn On TXCO
     GpioInit( &ioPin, RADIO_TCXO, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
-	// Turn On RF switch
-    GpioInit( &ioPin, RADIO_RF_CTX, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
 
-    GpioInit( &SX1276.DIO0, RADIO_DIO_0, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_UP, 0 );
-    GpioInit( &SX1276.DIO1, RADIO_DIO_1, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_UP, 0 );
-    GpioInit( &SX1276.DIO2, RADIO_DIO_2, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_UP, 0 );
-    GpioInit( &SX1276.DIO3, RADIO_DIO_3, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_UP, 0 );
+    GpioInit( &SX1276.DIO0, RADIO_DIO_0, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_DOWN, 0 );
+    GpioInit( &SX1276.DIO1, RADIO_DIO_1, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_DOWN, 0 );
+    GpioInit( &SX1276.DIO2, RADIO_DIO_2, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_DOWN, 0 );
+    GpioInit( &SX1276.DIO3, RADIO_DIO_3, PIN_INPUT, PIN_PUSH_PULL, PIN_PULL_DOWN, 0 );
 }
 
 void SX1276IoIrqInit( DioIrqHandler **irqHandlers )
@@ -174,14 +169,23 @@ void SX1276SetAntSwLowPower( bool status )
     }
 }
 
+/*!
+ * Antenna switch GPIO pins objects
+ */
+Gpio_t AntSwitchHf_RADIO_RF_CTX;
+Gpio_t AntSwitchHf_RADIO_RF_CPS;
+
 void SX1276AntSwInit( void )
 {
-    GpioInit( &AntSwitchHf, RADIO_RF_CPS, PIN_OUTPUT, PIN_PUSH_PULL, PIN_PULL_UP, 0 );
+	// Turn On RF switch
+    GpioInit( &AntSwitchHf_RADIO_RF_CTX, RADIO_RF_CTX, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+    GpioInit( &AntSwitchHf_RADIO_RF_CPS, RADIO_RF_CPS, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
 }
 
 void SX1276AntSwDeInit( void )
 {
-    GpioDeinit( &AntSwitchHf );
+    GpioDeinit( &AntSwitchHf_RADIO_RF_CTX );
+    GpioDeinit( &AntSwitchHf_RADIO_RF_CPS );
 }
 
 void SX1276SetAntSw( uint8_t opMode )
@@ -189,13 +193,13 @@ void SX1276SetAntSw( uint8_t opMode )
     switch( opMode )
     {
     case RFLR_OPMODE_TRANSMITTER:
-        GpioWrite( &AntSwitchHf, 1 );
+        GpioWrite( &AntSwitchHf_RADIO_RF_CPS, 1 );
         break;
     case RFLR_OPMODE_RECEIVER:
     case RFLR_OPMODE_RECEIVER_SINGLE:
     case RFLR_OPMODE_CAD:
     default:
-        GpioWrite( &AntSwitchHf, 0 );
+        GpioWrite( &AntSwitchHf_RADIO_RF_CPS, 0 );
         break;
     }
 }

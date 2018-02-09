@@ -2319,7 +2319,7 @@
             <name>$PROJ_DIR$\..\Apps\Commissioning.h</name>
         </file>
         <file>
-            <name>$PROJ_DIR$\..\Apps\main.c</name>
+            <name>$PROJ_DIR$\..\Apps\LoRaWAN_Demo\main.c</name>
         </file>
         <file>
             <name>$PROJ_DIR$\..\Apps\sdk_config.h</name>
@@ -2339,7 +2339,7 @@
         <group>
             <name>lora_board</name>
             <file>
-                <name>$PROJ_DIR$\..\Board\lora_board\app_lora.c</name>
+                <name>$PROJ_DIR$\..\Apps\LoRaWAN_Demo\app_lora.c</name>
             </file>
             <file>
                 <name>$PROJ_DIR$\..\Board\lora_board\board.c</name>
@@ -2483,6 +2483,9 @@
                 <name>$PROJ_DIR$\..\nRF_Lib\components\ble\common\ble_conn_state.c</name>
             </file>
             <file>
+                <name>$PROJ_DIR$\..\nRF_Lib\components\ble\ble_db_discovery\ble_db_discovery.c</name>
+            </file>
+            <file>
                 <name>$PROJ_DIR$\..\nRF_Lib\components\ble\ble_services\ble_nus\ble_nus.c</name>
             </file>
             <file>
@@ -2576,6 +2579,9 @@
                 <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\app_util_platform.c</name>
             </file>
             <file>
+                <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\crc16\crc16.c</name>
+            </file>
+            <file>
                 <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\fds\fds.c</name>
             </file>
             <file>
@@ -2625,9 +2631,6 @@
             </file>
             <file>
                 <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\src\nrf_log_backend_serial.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\src\nrf_log_backend_uart.c</name>
             </file>
             <file>
                 <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\src\nrf_log_default_backends.c</name>

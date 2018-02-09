@@ -199,9 +199,7 @@ SX1276_t SX1276;
 /*!
 * Hardware DIO IRQ callback initialization
 */
-DioIrqHandler *DioIrq[] = { SX1276OnDio0Irq, SX1276OnDio1Irq,
-SX1276OnDio2Irq, SX1276OnDio3Irq,
-SX1276OnDio4Irq, NULL };
+DioIrqHandler *DioIrq[] = { SX1276OnDio0Irq, SX1276OnDio1Irq,SX1276OnDio2Irq, SX1276OnDio3Irq,SX1276OnDio4Irq, NULL };
 
 /*!
 * Tx and Rx timers

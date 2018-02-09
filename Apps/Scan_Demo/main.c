@@ -58,6 +58,7 @@
 #include "ble_hci.h"
 #include "ble_advdata.h"
 #include "ble_advertising.h"
+#include "ble_db_discovery.h"
 #include "ble_conn_params.h"
 #include "nrf_sdh.h"
 #include "nrf_sdh_soc.h"
@@ -69,7 +70,7 @@
 #include "app_uart.h"
 #include "app_util_platform.h"
 #include "bsp_btn_ble.h"
-
+#include "peer_manager.h"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
@@ -91,9 +92,9 @@
 #define APP_FEATURE_NOT_SUPPORTED       BLE_GATT_STATUS_ATTERR_APP_BEGIN + 2        /**< Reply when unsupported features are requested. */
 
 #define DEVICE_NAME                     "RAK813 BreakBoard"                               /**< Name of device. Will be included in the advertising data. */
-#define NUS_SERVICE_UUID_TYPE           BLE_UUID_TYPE_BLE //BLE_UUID_TYPE_VENDOR_BEGIN                  /**< UUID type for the Nordic UART Service (vendor specific). */
+#define NUS_SERVICE_UUID_TYPE           BLE_UUID_TYPE_VENDOR_BEGIN                  /**< UUID type for the Nordic UART Service (vendor specific). */
 
-#define APP_BLE_OBSERVER_PRIO           1                                           /**< Application's BLE observer priority. You shouldn't need to modify this value. */
+#define APP_BLE_OBSERVER_PRIO           3                                           /**< Application's BLE observer priority. You shouldn't need to modify this value. */
 
 #define APP_ADV_INTERVAL                64                                          /**< The advertising interval (in units of 0.625 ms. This value corresponds to 40 ms). */
 #define APP_ADV_TIMEOUT_IN_SECONDS      180                                         /**< The advertising timeout (in units of seconds). */
@@ -111,11 +112,18 @@
 #define UART_TX_BUF_SIZE                256                                         /**< UART TX buffer size. */
 #define UART_RX_BUF_SIZE                256                                         /**< UART RX buffer size. */
 
+#define SCAN_INTERVAL                   0x00A0                                      /**< Determines scan interval in units of 0.625 millisecond. */
+#define SCAN_WINDOW                     0x0050                                      /**< Determines scan window in units of 0.625 millisecond. */
+#define SCAN_TIMEOUT                    0
+
+#define UUID16_SIZE                     2                                           /**< Size of 16 bit UUID */
+#define UUID32_SIZE                     4                                           /**< Size of 32 bit UUID */
+#define UUID128_SIZE                    16                                          /**< Size of 128 bit UUID */
 
 BLE_NUS_DEF(m_nus);                                                                 /**< BLE NUS service instance. */
 NRF_BLE_GATT_DEF(m_gatt);                                                           /**< GATT module instance. */
 BLE_ADVERTISING_DEF(m_advertising);                                                 /**< Advertising module instance. */
-
+BLE_DB_DISCOVERY_DEF(m_db_disc);                                                    /**< DB discovery module instance. */
 
 static uint16_t   m_conn_handle          = BLE_CONN_HANDLE_INVALID;                 /**< Handle of the current connection. */
 static uint16_t   m_ble_nus_max_data_len = BLE_GATT_ATT_MTU_DEFAULT - 3;            /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
@@ -124,15 +132,38 @@ static ble_uuid_t m_adv_uuids[]          =                                      
     {BLE_UUID_NUS_SERVICE, NUS_SERVICE_UUID_TYPE}
 };
 
-
-//#define MEM_BUFF_SIZE                    512
-////NRF_BLE_QWR_DEF(m_qwr);       																								/**< Queued Writes structure.*/
-//static uint8_t      m_buffer[MEM_BUFF_SIZE];
-////static nrf_ble_qwrs_t m_qwrs;
-//
-
 lora_cfg_t		g_lora_cfg;																													/**< lorab board config param.*/
 bool loraconfigupdataflg = false;
+
+Ble_scanRsp_t m_bls_scan_rsp[10];
+uint8_t rspNum = 0;
+
+void Write_OLED_string(unsigned char* status);
+
+/**@brief Parameters used when scanning. */
+static ble_gap_scan_params_t const m_scan_params =
+{
+    .active   = 1,
+    .interval = SCAN_INTERVAL,
+    .window   = SCAN_WINDOW,
+    .timeout  = SCAN_TIMEOUT,
+    #if (NRF_SD_BLE_API_VERSION <= 2)
+        .selective   = 0,
+        .p_whitelist = NULL,
+    #endif
+    #if (NRF_SD_BLE_API_VERSION >= 3)
+        .use_whitelist = 0,
+    #endif
+};
+
+/**@brief Variable length data encapsulation in terms of length and pointer to data. */
+typedef struct
+{
+    uint8_t * p_data;   /**< Pointer to data. */
+    uint16_t  data_len; /**< Length of data. */
+} data_t;
+
+
 
 /**@brief Function for assert macro callback.
 *
@@ -148,6 +179,55 @@ bool loraconfigupdataflg = false;
 void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
 {
     app_error_handler(DEAD_BEEF, line_num, p_file_name);
+}
+
+
+/**
+ * @brief Parses advertisement data, providing length and location of the field in case
+ *        matching data is found.
+ *
+ * @param[in]  type       Type of data to be looked for in advertisement data.
+ * @param[in]  p_advdata  Advertisement report length and pointer to report.
+ * @param[out] p_typedata If data type requested is found in the data report, type data length and
+ *                        pointer to data will be populated here.
+ *
+ * @retval NRF_SUCCESS if the data type is found in the report.
+ * @retval NRF_ERROR_NOT_FOUND if the data type could not be found.
+ */
+static uint32_t adv_report_parse(data_t * p_advdata, data_t * p_typedata)
+{
+    uint32_t  index = 0;
+    uint8_t * p_data;
+
+    p_data = p_advdata->p_data;
+
+    while (index < p_advdata->data_len)
+    {
+        uint8_t field_length = p_data[index];
+        uint8_t field_type   = p_data[index + 1];
+
+        if (field_type == BLE_GAP_AD_TYPE_COMPLETE_LOCAL_NAME || field_type == BLE_GAP_AD_TYPE_SHORT_LOCAL_NAME)
+        {
+            p_typedata->p_data   = &p_data[index + 2];
+            p_typedata->data_len = field_length - 1;
+            return NRF_SUCCESS;
+        }
+        index += field_length + 1;
+    }
+    return NRF_ERROR_NOT_FOUND;
+}
+
+
+/**@brief Function to start scanning. */
+static void scan_start(void)
+{
+    ret_code_t ret;
+
+    ret = sd_ble_gap_scan_start(&m_scan_params);
+    APP_ERROR_CHECK(ret);
+
+    ret = bsp_indication_set(BSP_INDICATE_SCANNING);
+    APP_ERROR_CHECK(ret);
 }
 
 
@@ -180,17 +260,6 @@ static void gap_params_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
-
-/**@brief Function for handling the data from the Nordic UART Service.
-*
-* @details This function will process the data received from the Nordic UART BLE Service and send
-*          it to the UART module.
-*
-* @param[in] p_nus    Nordic UART Service structure.
-* @param[in] p_data   Data to be send to UART module.
-* @param[in] length   Length of the data.
-*/
-/**@snippet [Handling the data received over BLE] */
 
 
 int set_handler(int argc, char* argv[], lora_cfg_t* cfg_info)
@@ -267,6 +336,47 @@ int  parse_lora_config(char* str, lora_cfg_t *cfg)
     return 0;
 }
 
+void add_scan_rsp_list(const uint8_t* name, const uint8_t* mac, int8_t rssi)
+{
+    uint8_t num = rspNum;
+    uint8_t nullmac[6] = {0};
+    uint8_t i;
+    
+    if (num == 0) {
+        memcpy(m_bls_scan_rsp[0].bleMac, mac, 6);
+        strcpy((char*)m_bls_scan_rsp[0].bleName, (char*)name);
+        m_bls_scan_rsp[0].bleRssi = rssi;
+        rspNum = 1;
+	//printf("add scan_rsp to list 0\r\n");
+    }
+    else if (num < 10) {
+        for(i=0; i<num; i++){
+            if(0 == memcmp(m_bls_scan_rsp[i].bleMac, mac, 6))
+                return;
+            
+            if (0 == memcmp(m_bls_scan_rsp[i].bleMac, nullmac, 6))
+            {
+                memcpy(m_bls_scan_rsp[i].bleMac, mac, 6);
+                strcpy((char*)m_bls_scan_rsp[i].bleName, (char*)name);
+                m_bls_scan_rsp[i].bleRssi = rssi;
+                rspNum++;
+                return;
+                //printf("add scan_rsp to list %d\r\n",i);
+            }
+        }
+    }
+}
+
+/**@brief Function for handling the data from the Nordic UART Service.
+*
+* @details This function will process the data received from the Nordic UART BLE Service and send
+*          it to the UART module.
+*
+* @param[in] p_nus    Nordic UART Service structure.
+* @param[in] p_data   Data to be send to UART module.
+* @param[in] length   Length of the data.
+*/
+/**@snippet [Handling the data received over BLE] */
 static void nus_data_handler(ble_nus_evt_t * p_evt)
 {
     
@@ -286,7 +396,6 @@ static void nus_data_handler(ble_nus_evt_t * p_evt)
         }
         else
         {
-#if 1
             for (uint32_t i = 0; i < p_evt->params.rx_data.length; i++)
             {
                 do
@@ -303,26 +412,11 @@ static void nus_data_handler(ble_nus_evt_t * p_evt)
             {
                 while (app_uart_put('\n') == NRF_ERROR_BUSY);
             }
-#endif
         }
-        
-    }
-    
+    } 
 }
 /**@snippet [Handling the data received over BLE] */
 
-
-/**@brief Function for handling Service errors.
-*
-* @details A pointer to this function will be passed to each service which may need to inform the
-*          application about an error.
-*
-* @param[in]   nrf_error   Error code containing information about what went wrong.
-*/
-static void service_error_handler(uint32_t nrf_error)
-{
-    APP_ERROR_HANDLER(nrf_error);
-}
 
 /**@brief Function for initializing services that will be used by the application.
 */
@@ -338,29 +432,6 @@ static void services_init(void)
     err_code = ble_nus_init(&m_nus, &nus_init);
     APP_ERROR_CHECK(err_code);
     
-#if 0	
-    nrf_ble_qwr_init_t  qwr_init;
-    nrf_ble_qwrs_init_t qwrs_init;
-    
-    // Initialize Queued Write Module
-    qwr_init.mem_buffer.len   = MEM_BUFF_SIZE;
-    qwr_init.mem_buffer.p_mem = m_buffer;
-    qwr_init.error_handler    = service_error_handler;
-    qwr_init.callback         = queued_write_handler;
-    
-    err_code = nrf_ble_qwr_init(&m_qwr, &qwr_init);
-    APP_ERROR_CHECK(err_code);
-    
-    //initialize the Queued Writes Example Service
-    memset(&qwrs_init, 0, sizeof(qwrs_init));
-    
-    qwrs_init.evt_handler   = queued_write_example_service_evt_handler;
-    qwrs_init.error_handler = service_error_handler;
-    qwrs_init.p_qwr_ctx     = &m_qwr;
-    
-    err_code = nrf_ble_qwrs_init(&qwrs_init, &m_qwrs);
-    APP_ERROR_CHECK(err_code);
-#endif
 }
 
 
@@ -463,6 +534,7 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
     }
 }
 
+bool nRF_BLE_CONNECTED_FLG = false;
 
 /**@brief Function for handling BLE events.
 *
@@ -472,21 +544,40 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
 static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 {
     uint32_t err_code;
-    
+    data_t                dev_name;
+    data_t                adv_data;
+    ble_gap_evt_t const * p_gap_evt = &p_ble_evt->evt.gap_evt;
+ 
     switch (p_ble_evt->header.evt_id)
     {
+      case BLE_GAP_EVT_ADV_REPORT:
+        {
+            ble_gap_evt_adv_report_t const * p_adv_report = &p_gap_evt->params.adv_report; 
+            adv_data.p_data   = (uint8_t *)p_adv_report->data;
+            adv_data.data_len = p_adv_report->dlen;
+            
+            err_code = adv_report_parse(&adv_data, &dev_name);
+            if (err_code == NRF_SUCCESS)
+            {   
+                add_scan_rsp_list(dev_name.p_data,p_adv_report->peer_addr.addr,p_adv_report->rssi);
+            }
+        }break;
       case BLE_GAP_EVT_CONNECTED:
-        NRF_LOG_INFO("Connected");
+        printf("BLE Connected\r\n");
+        Write_OLED_string("BLE Connected");
         err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
         APP_ERROR_CHECK(err_code);
         m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
+        nRF_BLE_CONNECTED_FLG = true;
         break;
         
       case BLE_GAP_EVT_DISCONNECTED:
-        NRF_LOG_INFO("Disconnected");
+        printf("BLE Disconnected\r\n");
+        Write_OLED_string("BLE Disconnect");
         err_code = bsp_indication_set(BSP_INDICATE_IDLE);
         APP_ERROR_CHECK(err_code);
         m_conn_handle = BLE_CONN_HANDLE_INVALID;
+        nRF_BLE_CONNECTED_FLG = false;
         break;
         
 #if defined(S132)
@@ -524,9 +615,20 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
         err_code = sd_ble_gatts_sys_attr_set(m_conn_handle, NULL, 0, 0);
         APP_ERROR_CHECK(err_code);
         break;
-        
+      case BLE_GAP_EVT_TIMEOUT:
+        if (p_gap_evt->params.timeout.src == BLE_GAP_TIMEOUT_SRC_SCAN)
+        {
+            NRF_LOG_INFO("Scan timed out.");
+            scan_start();
+        }
+        else if (p_gap_evt->params.timeout.src == BLE_GAP_TIMEOUT_SRC_CONN)
+        {
+            NRF_LOG_INFO("Connection Request timed out.");
+        }
+        break;        
       case BLE_GATTC_EVT_TIMEOUT:
         // Disconnect on GATT Client timeout event.
+        NRF_LOG_DEBUG("GATT Client Timeout.");
         err_code = sd_ble_gap_disconnect(p_ble_evt->evt.gattc_evt.conn_handle,
                                          BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
         APP_ERROR_CHECK(err_code);
@@ -534,6 +636,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
         
       case BLE_GATTS_EVT_TIMEOUT:
         // Disconnect on GATT Server timeout event.
+        NRF_LOG_DEBUG("GATT Server Timeout.");
         err_code = sd_ble_gap_disconnect(p_ble_evt->evt.gatts_evt.conn_handle,
                                          BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
         APP_ERROR_CHECK(err_code);
@@ -628,7 +731,7 @@ void gatt_init(void)
     err_code = nrf_ble_gatt_init(&m_gatt, gatt_evt_handler);
     APP_ERROR_CHECK(err_code);
     
-    err_code = nrf_ble_gatt_att_mtu_periph_set(&m_gatt, 240);
+    err_code = nrf_ble_gatt_att_mtu_periph_set(&m_gatt, NRF_SDH_BLE_GATT_MAX_MTU_SIZE);
     APP_ERROR_CHECK(err_code);
 }
 
@@ -708,11 +811,13 @@ void uart_event_handle(app_uart_evt_t * p_event)
             index = 0;
         }
         break;
-        
+      case APP_UART_COMMUNICATION_ERROR:
+        NRF_LOG_ERROR("Communication error occurred while handling UART.");
         APP_ERROR_HANDLER(p_event->data.error_communication);
         break;
         
       case APP_UART_FIFO_ERROR:
+        NRF_LOG_ERROR("Error occurred in FIFO module used by UART.");
         APP_ERROR_HANDLER(p_event->data.error_code);
         break;
         
@@ -784,18 +889,20 @@ static void advertising_init(void)
 *
 * @param[out] p_erase_bonds  Will be true if the clear bonding button was pressed to wake the application up.
 */
-//static void buttons_leds_init(bool * p_erase_bonds)
-//{
+static void buttons_leds_init(bool * p_erase_bonds)
+{
 //    bsp_event_t startup_event;
-//    
-//    uint32_t err_code = bsp_init(BSP_INIT_LED | BSP_INIT_BUTTONS, bsp_event_handler);
-//    APP_ERROR_CHECK(err_code);
-//    
+    
+    uint32_t err_code = bsp_init(BSP_INIT_LED, bsp_event_handler);
+    APP_ERROR_CHECK(err_code);
+    
+    bsp_board_buttons_init();
+    
 //    err_code = bsp_btn_ble_init(NULL, &startup_event);
 //    APP_ERROR_CHECK(err_code);
-//    
+    
 //    *p_erase_bonds = (startup_event == BSP_EVENT_CLEAR_BONDING_DATA);
-//}
+}
 
 
 /**@brief Function for initializing the nrf log module.
@@ -811,14 +918,13 @@ static void log_init(void)
 
 /**@brief Function for placing the application in low power state while waiting for events.
 */
-static void power_manage(void)
+void power_manage(void)
 {
     uint32_t err_code = sd_app_evt_wait();
     APP_ERROR_CHECK(err_code);
 }
 
-/*
-i2c device init
+/**@i2c device init
 */
 uint32_t i2c_drv_init(void)
 {
@@ -848,54 +954,43 @@ uint32_t i2c_drv_init(void)
 #include "timer.h"
 #include "board.h"
 
-extern char StringText[100];
-//static TimerTime_t GpsCommsTimer=0;
+APP_TIMER_DEF(ble_scan_timer);
 
-APP_TIMER_DEF(read_gps_timer);
-APP_TIMER_DEF(read_HT_timer);
-APP_TIMER_DEF(read_3DH_timer);
 
-extern uint8_t GpsDataBuffer[512];
-bool readgpsdatastreamflag = false;
-bool readHTdatastreamflag = false;
-bool read3DHdatastreamflag = false;
-int SECOND_TICK = 32768;
-void* read_gps_timer_handle()
+void* ble_scan_timer_handle()
 {
-    readgpsdatastreamflag = true;
+    uint32_t err_code;
+    for (uint8_t i = 0;i<rspNum;i++)
+    {
+        printf("Name:%s rssi:%d Mac:%02x:%02x:%02x:%02x:%02x:%02x\r\n",
+               m_bls_scan_rsp[i].bleName,
+               m_bls_scan_rsp[i].bleRssi,
+               m_bls_scan_rsp[i].bleMac[0],
+               m_bls_scan_rsp[i].bleMac[1],
+               m_bls_scan_rsp[i].bleMac[2],
+               m_bls_scan_rsp[i].bleMac[3],
+               m_bls_scan_rsp[i].bleMac[4],
+               m_bls_scan_rsp[i].bleMac[5]);
+    }
+    if(rspNum!=0)
+    {
+        Write_OLED_string("Scan Success");
+    }
+    err_code = sd_ble_gap_scan_stop();
+    APP_ERROR_CHECK(err_code);
+    printf("nRF BLE Scan stop.\r\n");
+    Write_OLED_string("BLE Scan Stop");
+    err_code = ble_advertising_start(&m_advertising, BLE_ADV_MODE_FAST);
+    APP_ERROR_CHECK(err_code);
+    printf("nRF BLE advertising start.\r\n");
+    Write_OLED_string("BLE ADV Start");
     return NULL;
 }
 
-uint32_t read_gps_timer_init(void)
+uint32_t ble_scan_timer_init(void)
 {
-    app_timer_create(&read_gps_timer,APP_TIMER_MODE_REPEATED,(app_timer_timeout_handler_t)read_gps_timer_handle);
-    app_timer_start(read_gps_timer, SECOND_TICK*0.1, NULL);
-    return NULL;
-}
-
-void* read_HT_timer_handle()
-{
-    readHTdatastreamflag = true;
-    return NULL;
-}
-
-uint32_t read_HT_timer_init(void)
-{
-    app_timer_create(&read_HT_timer,APP_TIMER_MODE_REPEATED,(app_timer_timeout_handler_t)read_HT_timer_handle);
-    app_timer_start(read_HT_timer, SECOND_TICK*5, NULL);
-    return NULL;
-}
-
-void* read_3DH_timer_handle()
-{
-    read3DHdatastreamflag = true;
-    return NULL;
-}
-
-uint32_t read_3DH_timer_init(void)
-{
-    app_timer_create(&read_3DH_timer,APP_TIMER_MODE_REPEATED,(app_timer_timeout_handler_t)read_3DH_timer_handle);
-    app_timer_start(read_3DH_timer, SECOND_TICK*5, NULL);
+    app_timer_create(&ble_scan_timer,APP_TIMER_MODE_SINGLE_SHOT,(app_timer_timeout_handler_t)ble_scan_timer_handle);
+//    app_timer_start(ble_scan_timer,APP_TIMER_TICKS(1000), NULL);
     return NULL;
 }
 
@@ -904,39 +999,39 @@ peripherals_data per_data;
 void Write_OLED_string(unsigned char* status)
 {
     char len = strlen((char const*)status);
-    len = (21- len)/2;
-    char line1[25];
-    char line2[25];
-    char line3[25];
-    char line4[25];
-    char line5[25];
-    
-    sprintf(line1,"Battery:%d%\0",per_data.battery);
-    sprintf(line2,"T:%.1fC, H:%.1f%\0",per_data.HT_temperature, per_data.HT_humidity);
-    sprintf(line3,"%.2fN,%.2fE,%dM\0",per_data.gps_latitude,per_data.gps_longitude,per_data.gps_altitude);
-    sprintf(line4,"X:%d Y:%d\0",per_data.MEMS_X,per_data.MEMS_Y);
-    sprintf(line5,"Z:%d\0",per_data.MEMS_Z);
+    len = (127 - len*8)/2;
     
     OLED_Init();
     OLED_CLS();
     
     OLED_ShowStr(10,0,"RAK813 BreakBoard",1);
-    OLED_ShowStr(0,1,(unsigned char*)line1,1);
-    OLED_ShowStr(0,2,(unsigned char*)line2,1);
-    OLED_ShowStr(0,3,(unsigned char*)line3,1);
-    OLED_ShowStr(0,4,(unsigned char*)line4,1);
-    OLED_ShowStr(0,5,(unsigned char*)line5,1);
-    OLED_ShowStr(len*5,6,status,1);
+    OLED_ShowStr(0,1,"Send BLE Scan device data to LoRa gateway",1);
+    OLED_ShowStr(len,5,status,2);
+}
+
+bool Check_Button_Status()
+{
+    if(bsp_board_button_state_get(bsp_board_pin_to_button_idx(BUTTON_1)))
+    {
+        DelayMs(200);
+        if(bsp_board_button_state_get(bsp_board_pin_to_button_idx(BUTTON_1)))
+        {
+            return true;
+        }
+    }
+    return false;       
 }
 
 void nRF_hardware_init()
 {
     uint32_t err_code;
+    bool     erase_bonds;
     err_code = app_timer_init();
     APP_ERROR_CHECK(err_code);
     
     uart_init();
     log_init();
+    buttons_leds_init(&erase_bonds);
     /*i2c init*/
     i2c_drv_init();
     printf("nRE Hardware init success\r\n");
@@ -944,6 +1039,7 @@ void nRF_hardware_init()
 
 void nRF_BLE_init()
 {
+//    db_discovery_init();
     ble_stack_init();
     gap_params_init();
     gatt_init();
@@ -960,17 +1056,8 @@ void nRF_lora_init()
     memset((uint8_t*)&g_lora_cfg,0,sizeof(g_lora_cfg));
     u_fs_read_lora_cfg(&g_lora_cfg);
     u_fs_check_lora_cfg(&g_lora_cfg);
-    lora_init(&g_lora_cfg);
+    lora_init();
     printf("LoRa init success.\r\n");
-}
-void nRF_timer_init()
-{
-    gps_setup(); 
-    lis3dh_init();
-    lis3dh_setup();
-    read_gps_timer_init();
-    read_HT_timer_init();
-    read_3DH_timer_init();
 }
 
 int main(void)
@@ -979,15 +1066,17 @@ int main(void)
     //bool   erase_bonds;
     
     nRF_hardware_init();
+    Write_OLED_string("DEVICE INIT");
+    
     nRF_BLE_init();
     nRF_lora_init();
-    nRF_timer_init();
-    
-    Write_OLED_string("DEVICE INIT");
+
+    ble_scan_timer_init();
     
     err_code = ble_advertising_start(&m_advertising, BLE_ADV_MODE_FAST);
     APP_ERROR_CHECK(err_code);
     printf("nRF BLE advertising start.\r\n");
+    Write_OLED_string("BLE ADV Start");
     
     // Enter main loop.
     while(1)
@@ -998,65 +1087,41 @@ int main(void)
         {
             power_manage();
         }
-        
         if(loraconfigupdataflg)
         {
             u_fs_write_lora_cfg(&g_lora_cfg);
             loraconfigupdataflg = false;
         }
-        if (readgpsdatastreamflag)
+        if(Check_Button_Status())
         {
-            NRF_LOG_DEBUG("gps wait\r\n");
-            Max7GpsReadDataStream();
-            readgpsdatastreamflag = false;
-            if (GpsParseGpsData(GpsDataBuffer, 512))
-            {
-                double lat,lon;
-                uint8_t ret = GpsGetLatestGpsPositionDouble(&lat, &lon);
-                per_data.gps_altitude = GpsGetLatestGpsAltitude();
-                if(ret == SUCCESS )
-                {
-                    printf("lat=%f lot=%f \n", lat, lon);
-                    per_data.gps_latitude = lat;
-                    per_data.gps_longitude = lon;
-                    Write_OLED_string("GPS UPDATE");
-                }
-            }
-        }
-        if (readHTdatastreamflag)
-        {
-            NRF_LOG_DEBUG("HT wait\r\n");
-            readHTdatastreamflag = false;
-            if (Sht31_startMeasurementHighResolution() == 0)
-            {
-                //Sht31_startMeasurementLowResolution();
-                Sht31_readMeasurement_ft(&(per_data.HT_humidity),&(per_data.HT_temperature));
-                printf("temperature:%.1fC , humidity£º%.1f%\r\n\0",per_data.HT_temperature,per_data.HT_humidity);
-                Write_OLED_string("HT UPDATE");
-            }
+            printf("Button turn off.\r\n");
             
-        }
-        if (read3DHdatastreamflag)
-        {
-            NRF_LOG_DEBUG("3DH wait\r\n");
-            read3DHdatastreamflag = false;
-            uint8_t cnt=1;
-            AxesRaw_t data;
-            uint8_t response;
-            while(cnt--){
-                //get Acceleration Raw data  
-                response = LIS3DH_GetAccAxesRaw(&data);
-                if(response==1){
-                    printf("X=%d Y=%d Z=%d\r\n", data.AXIS_X, data.AXIS_Y, data.AXIS_Z);
-                    per_data.MEMS_X = data.AXIS_X;
-                    per_data.MEMS_Y = data.AXIS_Y;
-                    per_data.MEMS_Z = data.AXIS_Z;
+            if(nrf_sdh_is_enabled())
+            {
+                if (nRF_BLE_CONNECTED_FLG == true)
+                {
+                    err_code = sd_ble_gap_disconnect(m_conn_handle,BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+                    APP_ERROR_CHECK(err_code);
+                    printf("nRF BLE is connected, has been disconnected for you. If you want to scan, press the button again.\r\n");
+                    Write_OLED_string("BLE Disconnect");
                 }
-            }
-            Write_OLED_string("3DH UPDATE");
+                else
+                {
+                    err_code = sd_ble_gap_adv_stop();
+                    APP_ERROR_CHECK(err_code);
+                    printf("nRF BLE advertising stop.\r\n");
+                    err_code = bsp_indication_set(BSP_INDICATE_IDLE);
+                    APP_ERROR_CHECK(err_code);
+                    
+                    memset(m_bls_scan_rsp,0,sizeof(m_bls_scan_rsp));
+                    rspNum = 0;
+                    scan_start();
+                    Write_OLED_string("BLE Scan Start");
+                    app_timer_start(ble_scan_timer,APP_TIMER_TICKS(1000), NULL);
+                    printf("nRF BLE Scan start.\r\n");
+                }
+            }   
         }
-        
-        
     }
 }
 

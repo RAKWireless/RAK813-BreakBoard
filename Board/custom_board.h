@@ -24,32 +24,6 @@
 
 
 /*
-		GSM PIN Assignment
-		GSM_PWR_ON		--	P0.06
-		GSM_TXD			--	P0.12
-		GSM_RESET		--	P0.14
-		GSM_PWRKEY		--	P0.15
-		GSM_RXD			--	P0.20
-
-*/
-
-#define             GSM_PWR_ON_PIN                      6
-#define             GSM_TXD_PIN                        12
-#define             GSM_RESET_PIN                      14
-#define             GSM_PWRKEY_PIN                     15
-#define             GSM_RXD_PIN                        20
-
-#define             GSM_PWR_ON                     nrf_gpio_pin_write ( GSM_PWR_ON_PIN, 1 )
-#define             GSM_PWR_OFF                    nrf_gpio_pin_write ( GSM_PWR_ON_PIN, 0 )
-
-#define             GSM_PWRKEY_HIGH                nrf_gpio_pin_write ( GSM_PWRKEY_PIN, 0 )
-#define             GSM_PWRKEY_LOW                 nrf_gpio_pin_write ( GSM_PWRKEY_PIN, 1 )
-
-#define             GSM_RESET_HIGH                 nrf_gpio_pin_write ( GSM_RESET_PIN, 0 )
-#define             GSM_RESET_LOW                  nrf_gpio_pin_write ( GSM_RESET_PIN, 1 )
-
-
-/*
 		GPS PIN Assignment
 		GPS_STANDBY		--	P0.07
 		GPS_TXD			--	P0.08
@@ -58,10 +32,10 @@
 		GPS_RESET		--	P0.31
 
 */
-#define             GPS_STANDBY_PIN                        7
+#define             GPS_STANDBY_PIN                    7
 #define             GPS_TXD_PIN                        8
 #define             GPS_RXD_PIN                        9
-#define 						GPS_PWR_ON_PIN											31
+#define 	    GPS_PWR_ON_PIN	        	31
 #define             GPS_RESET_PIN                        31
 
 #define             GPS_PWR_ON                     nrf_gpio_pin_write ( GPS_PWR_ON_PIN, 1 )
@@ -117,10 +91,10 @@
 		BME_SDO		--	P0.05
 		
 */
-#define             BME280_SPI_CS_PIN                         2
-#define             BME280_SPI_SDI_PIN                        3
-#define             BME280_SPI_SCK_PIN                        4
-#define             BME280_SPI_SDO_PIN                        5
+//#define             BME280_SPI_CS_PIN                         2
+//#define             BME280_SPI_SDI_PIN                        3
+//#define             BME280_SPI_SCK_PIN                        4
+//#define             BME280_SPI_SDO_PIN                        5
 
 
 /*
@@ -130,10 +104,29 @@
 		OPT_SCL		--	P0.23
 		
 */
-#define             OPT3001_TWI_SDA_PIN                        21
-#define             OPT3001_INT_PIN                            22
-#define             OPT3001_TWI_SCL_PIN                        23
+//#define             OPT3001_TWI_SDA_PIN                        21
+//#define             OPT3001_INT_PIN                            22
+//#define             OPT3001_TWI_SCL_PIN                        23
 
+
+// LEDs BUTTONs definitions 
+#define LEDS_NUMBER    1
+#define LEDS_ACTIVE_STATE 0
+#define LED_1                                       25
+#define LED_2                                       26
+#define LEDS_LIST { LED_1 }
+
+#define BUTTONS_NUMBER 1
+#define BUTTONS_ACTIVE_STATE 0
+#define BUTTON_PULL    NRF_GPIO_PIN_PULLUP
+#define BUTTON_1                                    27
+#define BUTTON_2                                    24
+#define BUTTONS_LIST { BUTTON_1 }
+#define BSP_BUTTON_0   BUTTON_1
+
+/*!
+ * LED GPIO pins objects
+ */
 
 typedef struct{
         int temp_value;
@@ -162,6 +155,13 @@ typedef struct {
         uint8_t nwkskey[16];
         uint8_t appskey[16];
 } lora_cfg_t;
+
+
+typedef struct {
+        uint8_t bleName[16];
+        uint8_t bleMac[6];
+        int8_t  bleRssi;
+} Ble_scanRsp_t;
 
 
 extern lora_cfg_t     g_lora_cfg;

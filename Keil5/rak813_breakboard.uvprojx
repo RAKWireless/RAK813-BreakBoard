@@ -14,7 +14,7 @@
         <TargetCommonOption>
           <Device>nRF52832_xxAA</Device>
           <Vendor>Nordic Semiconductor</Vendor>
-          <PackID>NordicSemiconductor.nRF_DeviceFamilyPack.8.14.1</PackID>
+          <PackID>NordicSemiconductor.nRF_DeviceFamilyPack.8.15.2</PackID>
           <PackURL>http://developer.nordicsemi.com/nRF5_SDK/pieces/nRF_DeviceFamilyPack/</PackURL>
           <Cpu>IROM(0x00000000,0x80000) IRAM(0x20000000,0x10000) CPUTYPE("Cortex-M4") FPU2 CLOCK(12000000) ELITTLE</Cpu>
           <FlashUtilSpec></FlashUtilSpec>
@@ -367,9 +367,9 @@
             <v6LangP>0</v6LangP>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>BOARD_CUSTOM USE_APP_CONFIG NRF52 NRF52832_XXAA NRF52_PAN_74 NRF_SD_BLE_API_VERSION=5 S132 SOFTDEVICE_PRESENT SWI_DISABLE0 CONFIG_GPIO_AS_PINRESET REGION_US915</Define>
+              <Define>BOARD_CUSTOM USE_APP_CONFIG NRF52 NRF52832_XXAA NRF52_PAN_74 NRF_SD_BLE_API_VERSION=5 S132 SOFTDEVICE_PRESENT SWI_DISABLE0 CONFIG_GPIO_AS_PINRESET REGION_EU868</Define>
               <Undefine></Undefine>
-              <IncludePath>..\Apps;..\Board;..\Board\lora_board;..\Board\peripherals;..\LoRa_Lib\mac;..\LoRa_Lib\mac\region;..\LoRa_Lib\radio;..\LoRa_Lib\radio\sx1276;..\LoRa_Lib\system;..\LoRa_Lib\system\crypto;..\nRF_Lib\external\fprintf;..\nRF_Lib\external\segger_rtt;..\nRF_Lib\components\boards;..\nRF_Lib\components\device;..\nRF_Lib\components\ble\ble_services\ble_nus;..\nRF_Lib\components\toolchain;..\nRF_Lib\components\softdevice\common;..\nRF_Lib\components\softdevice\s132\headers;..\nRF_Lib\components\softdevice\s132\headers\nrf52;..\nRF_Lib\components\drivers_nrf\clock;..\nRF_Lib\components\drivers_nrf\common;..\nRF_Lib\components\drivers_nrf\gpiote;..\nRF_Lib\components\drivers_nrf\rtc;..\nRF_Lib\components\drivers_nrf\spi_master;..\nRF_Lib\components\drivers_nrf\timer;..\nRF_Lib\components\drivers_nrf\uart;..\nRF_Lib\components\drivers_nrf\twi_master;..\nRF_Lib\components\libraries\balloc;..\nRF_Lib\components\libraries\bsp;..\nRF_Lib\components\libraries\util;..\nRF_Lib\components\libraries\button;..\nRF_Lib\components\libraries\experimental_log;..\nRF_Lib\components\libraries\experimental_memobj;..\nRF_Lib\components\libraries\fds;..\nRF_Lib\components\libraries\fifo;..\nRF_Lib\components\libraries\fstorage;..\nRF_Lib\components\libraries\uart;..\nRF_Lib\components\libraries\experimental_section_vars;..\nRF_Lib\components\drivers_nrf\hal;..\nRF_Lib\components\libraries\strerror;..\nRF_Lib\components\libraries\experimental_log\src;..\nRF_Lib\components\libraries\timer;..\nRF_Lib\components\drivers_nrf\delay;..\nRF_Lib\components\libraries\atomic;..\nRF_Lib\components\libraries\pwr_mgmt;..\nRF_Lib\components\ble\common;..\nRF_Lib\components\libraries\mutex;..\nRF_Lib\components\ble\ble_advertising;..\nRF_Lib\components\drivers_nrf\wdt;..\nRF_Lib\components\ble\nrf_ble_gatt;..\nRF_Lib\components\libraries\mem_manager</IncludePath>
+              <IncludePath>..\Apps;..\Board;..\Board\lora_board;..\Board\peripherals;..\LoRa_Lib\mac;..\LoRa_Lib\mac\region;..\LoRa_Lib\radio;..\LoRa_Lib\radio\sx1276;..\LoRa_Lib\system;..\LoRa_Lib\system\crypto;..\nRF_Lib\external\fprintf;..\nRF_Lib\external\segger_rtt;..\nRF_Lib\components\boards;..\nRF_Lib\components\device;..\nRF_Lib\components\ble\ble_services\ble_nus;..\nRF_Lib\components\toolchain;..\nRF_Lib\components\softdevice\common;..\nRF_Lib\components\softdevice\s132\headers;..\nRF_Lib\components\softdevice\s132\headers\nrf52;..\nRF_Lib\components\drivers_nrf\clock;..\nRF_Lib\components\drivers_nrf\common;..\nRF_Lib\components\drivers_nrf\gpiote;..\nRF_Lib\components\drivers_nrf\rtc;..\nRF_Lib\components\drivers_nrf\spi_master;..\nRF_Lib\components\drivers_nrf\timer;..\nRF_Lib\components\drivers_nrf\uart;..\nRF_Lib\components\drivers_nrf\twi_master;..\nRF_Lib\components\libraries\balloc;..\nRF_Lib\components\libraries\bsp;..\nRF_Lib\components\libraries\util;..\nRF_Lib\components\libraries\button;..\nRF_Lib\components\libraries\experimental_log;..\nRF_Lib\components\libraries\experimental_memobj;..\nRF_Lib\components\libraries\fds;..\nRF_Lib\components\libraries\fifo;..\nRF_Lib\components\libraries\fstorage;..\nRF_Lib\components\libraries\uart;..\nRF_Lib\components\libraries\experimental_section_vars;..\nRF_Lib\components\drivers_nrf\hal;..\nRF_Lib\components\libraries\strerror;..\nRF_Lib\components\libraries\experimental_log\src;..\nRF_Lib\components\libraries\timer;..\nRF_Lib\components\drivers_nrf\delay;..\nRF_Lib\components\libraries\atomic;..\nRF_Lib\components\libraries\pwr_mgmt;..\nRF_Lib\components\ble\common;..\nRF_Lib\components\libraries\mutex;..\nRF_Lib\components\ble\ble_advertising;..\nRF_Lib\components\drivers_nrf\wdt;..\nRF_Lib\components\ble\nrf_ble_gatt;..\nRF_Lib\components\libraries\mem_manager;..\nRF_Lib\components\ble\ble_db_discovery;..\nRF_Lib\components\ble\peer_manager</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -413,11 +413,6 @@
           <GroupName>Apps</GroupName>
           <Files>
             <File>
-              <FileName>main.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Apps\main.c</FilePath>
-            </File>
-            <File>
               <FileName>sdk_config.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\Apps\sdk_config.h</FilePath>
@@ -426,6 +421,11 @@
               <FileName>Commissioning.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\Apps\Commissioning.h</FilePath>
+            </File>
+            <File>
+              <FileName>main.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Apps\LoRaWAN_Demo\main.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -468,11 +468,6 @@
           <GroupName>Board/lora_board</GroupName>
           <Files>
             <File>
-              <FileName>app_lora.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Board\lora_board\app_lora.c</FilePath>
-            </File>
-            <File>
               <FileName>board.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Board\lora_board\board.c</FilePath>
@@ -511,6 +506,11 @@
               <FileName>utils.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Board\lora_board\utils.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_lora.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Apps\LoRaWAN_Demo\app_lora.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -757,6 +757,11 @@
               <FileType>1</FileType>
               <FilePath>..\nRF_Lib\components\ble\ble_services\ble_nus\ble_nus.c</FilePath>
             </File>
+            <File>
+              <FileName>ble_db_discovery.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\nRF_Lib\components\ble\ble_db_discovery\ble_db_discovery.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -917,11 +922,6 @@
         <Group>
           <GroupName>nRF_Lib/log</GroupName>
           <Files>
-            <File>
-              <FileName>nrf_log_backend_uart.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\nRF_Lib\components\libraries\experimental_log\src\nrf_log_backend_uart.c</FilePath>
-            </File>
             <File>
               <FileName>nrf_log_default_backends.c</FileName>
               <FileType>1</FileType>

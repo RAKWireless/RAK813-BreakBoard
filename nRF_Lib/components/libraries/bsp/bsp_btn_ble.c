@@ -231,21 +231,21 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 NRF_SDH_BLE_OBSERVER(m_ble_observer, BSP_BTN_BLE_OBSERVER_PRIO, ble_evt_handler, NULL);
 
 
-//uint32_t bsp_btn_ble_init(bsp_btn_ble_error_handler_t error_handler, bsp_event_t * p_startup_bsp_evt)
-//{
-//    uint32_t err_code = NRF_SUCCESS;
+uint32_t bsp_btn_ble_init(bsp_btn_ble_error_handler_t error_handler, bsp_event_t * p_startup_bsp_evt)
+{
+    uint32_t err_code = NRF_SUCCESS;
 
-//    m_error_handler = error_handler;
+    m_error_handler = error_handler;
 
-//    if (p_startup_bsp_evt != NULL)
-//    {
-//        startup_event_extract(p_startup_bsp_evt);
-//    }
+    if (p_startup_bsp_evt != NULL)
+    {
+        startup_event_extract(p_startup_bsp_evt);
+    }
 
-//    if (m_num_connections == 0)
-//    {
-//        err_code = advertising_buttons_configure();
-//    }
+    if (m_num_connections == 0)
+    {
+        err_code = advertising_buttons_configure();
+    }
 
-//    return err_code;
-//}
+    return err_code;
+}

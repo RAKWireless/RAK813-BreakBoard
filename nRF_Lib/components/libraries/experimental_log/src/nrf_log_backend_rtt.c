@@ -38,7 +38,7 @@
  * 
  */
 #include "sdk_common.h"
-#if NRF_MODULE_ENABLED(NRF_LOG)
+#if NRF_MODULE_ENABLED(NRF_LOG) && NRF_MODULE_ENABLED(NRF_LOG_BACKEND_RTT)
 #include "nrf_log_backend_rtt.h"
 #include "nrf_log_backend_serial.h"
 #include "nrf_log_str_formatter.h"
@@ -46,13 +46,8 @@
 #include <SEGGER_RTT_Conf.h>
 #include <SEGGER_RTT.h>
 
-#if NRF_LOG_BACKEND_RTT_ENABLED
-#define RTT_BACKEND_BUFFER_SIZE NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE
-#else
-#define RTT_BACKEND_BUFFER_SIZE 1
-#endif
 
-static uint8_t m_string_buff[RTT_BACKEND_BUFFER_SIZE];
+static uint8_t m_string_buff[NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE];
 
 void nrf_log_backend_rtt_init(void)
 {
@@ -86,7 +81,7 @@ static void serial_tx(void const * p_context, char const * buffer, size_t len)
 static void nrf_log_backend_rtt_put(nrf_log_backend_t const * p_backend,
                                nrf_log_entry_t * p_msg)
 {
-    nrf_log_backend_serial_put(p_backend, p_msg, m_string_buff, RTT_BACKEND_BUFFER_SIZE, serial_tx);
+    nrf_log_backend_serial_put(p_backend, p_msg, m_string_buff, NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE, serial_tx);
 }
 
 static void nrf_log_backend_rtt_flush(nrf_log_backend_t const * p_backend)

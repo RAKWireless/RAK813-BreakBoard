@@ -263,15 +263,6 @@ static void fstorage_evt_handler(nrf_fstorage_evt_t * p_evt)
     }
 }
 
-static void power_manage(void)
-{
-#ifdef SOFTDEVICE_PRESENT
-    (void) sd_app_evt_wait();
-#else
-    __WFE();
-#endif
-}
-
 void wait_for_flash_ready(nrf_fstorage_t const * p_fstorage)
 {
     /* While fstorage is busy, sleep and wait for an event. */
@@ -312,7 +303,6 @@ void u_fs_check_lora_cfg(lora_cfg_t *cfg)
 void u_fs_read_lora_cfg(lora_cfg_t *cfg)
 {
     ret_code_t rc;
-    //rc = nrf_fstorage_erase(&fstorage, fstorage.start_addr, 1, NULL);
     rc = nrf_fstorage_read(&fstorage, fstorage.start_addr, cfg, sizeof(lora_cfg_t));
     APP_ERROR_CHECK(rc);
 }
@@ -344,95 +334,19 @@ void dump_hex2str(uint8_t *buf , uint8_t len)
     printf("\r\n");
 }
 
-bool GPS_GETFAIL = false;
 static void PrepareTxFrame( uint8_t port )
 {
-#if 1
-    double  latitude, longitude = 0;
-    int16_t altitudeGps = 0xFFFF;
-    float  tempr ;
-    float  hum ;
-    uint8_t ret;
-    uint16_t bat = 255;
-    int8_t response;
-    AxesRaw_t data;
-    
     switch( port )
     {
-        //https://mydevices.com/cayenne/docs/lora/#lora-cayenne-low-power-payload
-        //cayenne LPP GPS
       case 2:
         {
-            ret = GpsGetLatestGpsPositionDouble( &latitude, &longitude );
-            altitudeGps = GpsGetLatestGpsAltitude( );                           // in m
-            	
-            if (ret == SUCCESS) 
-            {
-                printf("LoRa uplink GPS latitude: %f, longitude: %f , altitudeGps: %d \n", latitude, longitude, altitudeGps);
-                
-                AppData[0] = 0x01;
-                AppData[1] = 0x88;
-                AppData[2] = ((int32_t)(latitude*10000) >> 16) & 0xFF;
-                AppData[3] = ((int32_t)(latitude*10000) >> 8) & 0xFF;
-                AppData[4] = ((int32_t)(latitude*10000)) & 0xFF;
-                AppData[5] = ((int32_t)(longitude*10000) >> 16) & 0xFF;
-                AppData[6] = ((int32_t)(longitude*10000) >> 8) & 0xFF;
-                AppData[7] = ((int32_t)(longitude*10000)) & 0xFF;  
-                AppData[8] = ((altitudeGps*100) >> 16) & 0xFF;
-                AppData[9] = ((altitudeGps*100) >> 8) & 0xFF;
-                AppData[10] = (altitudeGps*100) & 0xFF; 
-                AppDataSize = 11;
-            }	else {
-                AppDataSize = 0;
-                GPS_GETFAIL = true;
-            }			
+            AppData[0] = 0x01;
+            AppData[1] = 0x02;
+            AppData[2] = 0x03;
+            AppData[3] = 0x04;
+            AppData[4] = 0x05;
+            AppDataSize = 5;
         }
-        break;
-        //cayenne LPP Temp
-      case 3:
-        {
-            AppData[0] = 0x02;
-            AppData[1] = 0x67;
-            if (Sht31_startMeasurementHighResolution() == 0)
-            {
-                //Sht31_startMeasurementLowResolution();
-                Sht31_readMeasurement_ft(&hum,&tempr);
-                //printf("temperature:%.1fC , humidity£º%.1f%\0",per_data.HT_temperature,per_data.HT_humidity);
-               // Write_OLED_string("HT UPDATE");
-            }
-            
-            printf("LoRa uplink HT tempr: %.1f hum: %.1f% \r\n", tempr, hum);
-            //printf("temperature:%.1fC , humidity£º%.1f%\r\n\0",per_data.HT_temperature,per_data.HT_humidity);
-            
-            AppData[2] = ((int16_t)(tempr*10) >> 8) & 0xFF;
-            AppData[3] = (int16_t)(tempr*10)  & 0xFF;
-            AppData[4] = 0x02;
-            AppData[5] = 0x68;
-            AppData[6] = (int8_t)(hum*2)  & 0xFF; 
-            //printf("LoRa uplink HT tempr: %f  hum:%d% \r\n", tempr, hum);
-            AppDataSize = 7;
-        }
-        break;
-        //cayenne LPP Acceleration
-      case 4:
-        {
-            AppData[0] = 0x03;
-            AppData[1] = 0x71;
-            response = LIS3DH_GetAccAxesRaw(&data);
-            if(response==1){
-                printf("LoRa uplink ACC X=%d Y=%d Z=%d\r\n", data.AXIS_X, data.AXIS_Y, data.AXIS_Z);
-                
-                AppData[2] = (data.AXIS_X*1000)>>8;
-                AppData[3] = data.AXIS_X*1000;
-                AppData[4] = (data.AXIS_Y*1000)>>8;
-                AppData[5] = data.AXIS_Y*1000;
-                AppData[6] = (data.AXIS_Z*1000)>>8;
-                AppData[7] = data.AXIS_Z*1000;
-            }
-            AppDataSize = 8;
-            //NRF_LOG_INFO("ACC X:%04X Y:%04X Z:%04X\r\n", AppData[3]<<8 | AppData[2], AppData[5]<<8 | AppData[4], AppData[7]<<8 | AppData[6]);
-        }
-        break;
       case 224:
         if( ComplianceTest.LinkCheck == true )
         {
@@ -461,7 +375,6 @@ static void PrepareTxFrame( uint8_t port )
       default:
         break;
     }
-#endif
 }
 
 /*!
@@ -540,23 +453,14 @@ static void OnTxNextPacketTimerEvent( void )
 /*!
 * \brief Function executed on Led 1 Timeout event
 */
-static void OnLed1TimerEvent( void )
-{
-    TimerStop( &Led1Timer );
-    // Toggle LED 1 
-    GpioToggle( &Led1 );
-    TimerStart( &Led1Timer );
-}
+//static void OnLed1TimerEvent( void )
+//{
+//    TimerStop( &Led1Timer );
+//    // Toggle LED 1 
+//    GpioToggle( &Led1 );
+//    TimerStart( &Led1Timer );
+//}
 
-/*!
-* \brief Function executed on Led 2 Timeout event
-*/
-static void OnLed2TimerEvent( void )
-{
-    TimerStop( &Led2Timer );
-    // Switch LED 2 OFF
-    GpioWrite( &Led2, 1 );
-}
 
 /*!
 * \brief   MCPS-Confirm event function
@@ -655,7 +559,6 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
             if( mcpsIndication->BufferSize == 1 )
             {
                 AppLedStateOn = mcpsIndication->Buffer[0] & 0x01;
-                GpioWrite( &Led2, ( ( AppLedStateOn & 0x01 ) != 0 ) ? 0 : 1 );
             }
             break;
           case 224:
@@ -800,8 +703,8 @@ static void McpsIndication( McpsIndication_t *mcpsIndication )
     }
     
     // Switch LED 1 ON for each received downlink
-    GpioWrite( &Led1, 0 );
-    TimerStart( &Led1Timer );
+    //GpioWrite( &Led1, 0 );
+    //TimerStart( &Led1Timer );
 }
 
 /*!
@@ -821,10 +724,6 @@ static void MlmeConfirm( MlmeConfirm_t *mlmeConfirm )
                 // Status is OK, node has joined the network
                 DeviceState = DEVICE_STATE_SEND;
                 printf("OTAA Join Success \r\n");
-                //Write_OLED_string("OTAA Join Success");
-                // Switch LED 1 ON
-                GpioWrite( &Led1, 0 );
-                TimerStart( &Led1Timer );
             }
             else
             {
@@ -862,7 +761,6 @@ MibRequestConfirm_t mibReq;
 void lora_init()
 {
     BoardInitMcu( );
-    BoardInitPeriph( );
     DeviceState = DEVICE_STATE_INIT;
 }
 
@@ -904,11 +802,8 @@ void lora_process()
 #endif
             TimerInit( &TxNextPacketTimer, OnTxNextPacketTimerEvent );
             
-            TimerInit( &Led1Timer, OnLed1TimerEvent );
-            TimerSetValue( &Led1Timer, 2000 );
-            
-            TimerInit( &Led2Timer, OnLed2TimerEvent );
-            TimerSetValue( &Led2Timer, 50 );
+            //TimerInit( &Led1Timer, OnLed1TimerEvent );
+            //TimerSetValue( &Led1Timer, 2000 );   
             
             mibReq.Type = MIB_ADR;
             mibReq.Param.AdrEnable = LORAWAN_ADR_ON;
@@ -1011,9 +906,6 @@ void lora_process()
             mibReq.Param.IsNetworkJoined = true;
             LoRaMacMibSetRequestConfirm( &mibReq );
             
-            // Switch LED 1 ON
-            GpioWrite( &Led1, 0 );
-            TimerStart( &Led1Timer );
             DeviceState = DEVICE_STATE_SEND;
 #endif
             break;
@@ -1022,21 +914,8 @@ void lora_process()
         {
             if( NextTx == true )
             {
-                PrepareTxFrame( AppPort );
-                if (GPS_GETFAIL == true)
-                {
-                    GPS_GETFAIL = false;
-                }
-                else
-                {
-                    NextTx = SendFrame( );
-                }
-                
-                AppPort++;
-                if (AppPort >=5) {
-                    AppPort = 2;
-                }
-                
+                PrepareTxFrame( 2 );
+                NextTx = SendFrame( );
             }
             if( ComplianceTest.Running == true )
             {

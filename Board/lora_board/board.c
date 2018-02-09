@@ -23,9 +23,6 @@ static bool IsExtPower = false;
 * LED GPIO pins objects
 */
 Gpio_t Led1;
-Gpio_t Led2;
-Gpio_t Button1;
-Gpio_t Button2;
 
 uint8_t GetBoardPowerSource( void )
 {
@@ -119,13 +116,12 @@ void BoardInitPeriph( void )
     // Init the GPIO pins
     //GpioInit( &ioPin, GPS_POWER_ON_PIN, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
     GpioInit( &Led1, LED_1, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
-    GpioInit( &Led2, LED_2, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+//    GpioInit( &Led2, LED_2, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
 //    GpioInit( &Button1, BUTTON_1, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
 //    GpioInit( &Button2, BUTTON_2, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
     
     // Switch LED 1, 2 OFF
-    GpioWrite( &Led1, 1 );
-    GpioWrite( &Led2, 1 );
+    GpioWrite( &Led1, 1 );;
 }
 
 void BoardInitMcu( void )
@@ -154,53 +150,3 @@ void BoardProcess( void )
     while (NRF_LOG_PROCESS());
 }
 
-//static nrf_drv_wdt_channel_id	m_channel_id;
-//
-//void wdt_event_handler(void)
-//{
-//    //NOTE: The max amount of time we can spend in WDT interrupt is two cycles of 32768[Hz] clock - after that, reset occurs
-//}
-
-//void wdt_init(void)
-//{
-//    nrf_drv_wdt_config_t config = NRF_DRV_WDT_DEAFULT_CONFIG;
-//    ret_code_t err_code = nrf_drv_wdt_init(&config, wdt_event_handler);
-//    APP_ERROR_CHECK(err_code);
-//    err_code = nrf_drv_wdt_channel_alloc(&m_channel_id);
-//    APP_ERROR_CHECK(err_code);
-//    nrf_drv_wdt_enable();
-//}
-
-/**
-* @brief Assert callback.
-*
-* @param[in] id    Fault identifier. See @ref NRF_FAULT_IDS.
-* @param[in] pc    The program counter of the instruction that triggered the fault, or 0 if
-*                  unavailable.
-* @param[in] info  Optional additional information regarding the fault. Refer to each fault
-*                  identifier for details.
-*/
-void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
-{
-    //	wdt_init();
-    //printf("%d,%s,%d\r\n", ((error_info_t*)info)->line_num, ((error_info_t*)info)->p_file_name, ((error_info_t*)info)->err_code);
-    //SEGGER_RTT_printf(0, "%d,%s,%d\r\n", ((error_info_t*)info)->line_num, ((error_info_t*)info)->p_file_name, ((error_info_t*)info)->err_code);
-    while (1)
-    { }
-}
-
-/**@brief Callback function for asserts in the SoftDevice.
-*
-* @details This function will be called in case of an assert in the SoftDevice.
-*
-* @warning This handler is an example only and does not fit a final product. You need to analyze
-*          how your product is supposed to react in case of Assert.
-* @warning On assert from the SoftDevice, the system can only recover on reset.
-*
-* @param[in]   line_num   Line number of the failing ASSERT call.
-* @param[in]   file_name  File name of the failing ASSERT call.
-*/
-//void assert_nrf_callback(uint16_t line_num, const uint8_t *p_file_name)
-//{
-//	app_error_handler(DEAD_BEEF, line_num, p_file_name);
-//}

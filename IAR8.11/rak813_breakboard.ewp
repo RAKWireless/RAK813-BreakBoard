@@ -211,13 +211,14 @@
                     <state>USE_APP_CONFIG</state>
                     <state>BOARD_CUSTOM</state>
                     <state>S132</state>
+                    <state>BL_SETTINGS_ACCESS_ONLY</state>
                     <state>FLOAT_ABI_HARD</state>
                     <state>NRF52832_XXAA</state>
                     <state>NRF52_PAN_74</state>
                     <state>NRF_SD_BLE_API_VERSION=5 </state>
                     <state>SOFTDEVICE_PRESENT</state>
                     <state>CONFIG_GPIO_AS_PINRESET</state>
-                    <state>REGION_US915</state>
+                    <state>REGION_EU868</state>
                 </option>
                 <option>
                     <name>CCPreprocFile</name>
@@ -398,6 +399,12 @@
                     <state>$PROJ_DIR$\..\nRF_Lib\external\fprintf</state>
                     <state>$PROJ_DIR$\..\nRF_Lib\components\libraries\fds</state>
                     <state>$PROJ_DIR$\..\nRF_Lib\components\libraries\mutex</state>
+                    <state>$PROJ_DIR$\..\nRF_Lib\components\ble\peer_manager</state>
+                    <state>$PROJ_DIR$\..\nRF_Lib\components\ble\ble_db_discovery</state>
+                    <state>$PROJ_DIR$\..\nRF_Lib\components\libraries\bootloader\dfu</state>
+                    <state>$PROJ_DIR$\..\nRF_Lib\components\libraries\svc</state>
+                    <state>$PROJ_DIR$\..\nRF_Lib\components\ble\ble_services\ble_dfu</state>
+                    <state>$PROJ_DIR$\..\nRF_Lib\components\libraries\pwr_mgmt</state>
                 </option>
                 <option>
                     <name>CCStdIncCheck</name>
@@ -2092,7 +2099,7 @@
             <name>$PROJ_DIR$\..\Apps\Commissioning.h</name>
         </file>
         <file>
-            <name>$PROJ_DIR$\..\Apps\main.c</name>
+            <name>$PROJ_DIR$\..\Apps\LoRaWAN_Demo\main.c</name>
         </file>
         <file>
             <name>$PROJ_DIR$\..\Apps\sdk_config.h</name>
@@ -2112,7 +2119,7 @@
         <group>
             <name>lora_board</name>
             <file>
-                <name>$PROJ_DIR$\..\Board\lora_board\app_lora.c</name>
+                <name>$PROJ_DIR$\..\Apps\LoRaWAN_Demo\app_lora.c</name>
             </file>
             <file>
                 <name>$PROJ_DIR$\..\Board\lora_board\board.c</name>
@@ -2174,6 +2181,9 @@
         </file>
         <file>
             <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\bsp\bsp_nfc.c</name>
+            <excluded>
+                <configuration>Debug</configuration>
+            </excluded>
         </file>
     </group>
     <group>
@@ -2254,6 +2264,9 @@
             </file>
             <file>
                 <name>$PROJ_DIR$\..\nRF_Lib\components\ble\common\ble_conn_state.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\nRF_Lib\components\ble\ble_db_discovery\ble_db_discovery.c</name>
             </file>
             <file>
                 <name>$PROJ_DIR$\..\nRF_Lib\components\ble\ble_services\ble_nus\ble_nus.c</name>
@@ -2349,6 +2362,9 @@
                 <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\util\app_util_platform.c</name>
             </file>
             <file>
+                <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\crc16\crc16.c</name>
+            </file>
+            <file>
                 <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\fds\fds.c</name>
             </file>
             <file>
@@ -2398,9 +2414,6 @@
             </file>
             <file>
                 <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\src\nrf_log_backend_serial.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\src\nrf_log_backend_uart.c</name>
             </file>
             <file>
                 <name>$PROJ_DIR$\..\nRF_Lib\components\libraries\experimental_log\src\nrf_log_default_backends.c</name>

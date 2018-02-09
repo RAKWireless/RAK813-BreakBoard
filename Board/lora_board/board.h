@@ -56,22 +56,6 @@
 #endif
 
 /*!
- * GPS function definitions
- */
-//#define GpsGetLatestGpsAltitude()	0
-//#define GpsStart( )
-//#define GpsStop( )
-//#define GpsGetLatestGpsPositionBinary(lat, lon)
-
-/*!
- * Board IO pins definitions
- */
-#define LED_1                                       25
-#define LED_2                                       26
-#define BUTTON_1                                    27
-#define BUTTON_2                                    24
- 
-/*!
  * Pin definitions
  */
 #define RADIO_DIO_0		P7
@@ -120,7 +104,6 @@ enum BoardPowerSources
  * LED GPIO pins objects
  */
 extern Gpio_t Led1;
-extern Gpio_t Led2;
 
 /*!
  * \brief Measure the Battery voltage
@@ -189,5 +172,6 @@ void dump_hex2str(uint8_t *buf , uint8_t len);
 
 void lora_init();
 void lora_process();
+void power_manage(void);
 #endif
 
