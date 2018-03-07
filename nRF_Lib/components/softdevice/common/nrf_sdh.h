@@ -125,7 +125,8 @@ typedef struct
  * @hideinitializer
  */
 #define NRF_SDH_REQUEST_OBSERVER(_observer, _prio)                                                  \
-STATIC_ASSERT(_prio < NRF_SDH_REQ_OBSERVER_PRIO_LEVELS);                                            \
+STATIC_ASSERT(NRF_SDH_ENABLED, "NRF_SDH_ENABLED not set!");                                         \
+STATIC_ASSERT(_prio < NRF_SDH_REQ_OBSERVER_PRIO_LEVELS, "Priority level unavailable.");             \
 /*lint -esym(528,*_observer) -esym(529,*_observer) : Symbol not referenced. */                      \
 NRF_SECTION_SET_ITEM_REGISTER(sdh_req_observers, _prio, nrf_sdh_req_observer_t const _observer)
 
@@ -170,7 +171,8 @@ typedef struct
  * @hideinitializer
  */
 #define NRF_SDH_STATE_OBSERVER(_observer, _prio)                                                           \
-STATIC_ASSERT(_prio < NRF_SDH_STATE_OBSERVER_PRIO_LEVELS);                                                 \
+STATIC_ASSERT(NRF_SDH_ENABLED, "NRF_SDH_ENABLED not set!");                                                \
+STATIC_ASSERT(_prio < NRF_SDH_STATE_OBSERVER_PRIO_LEVELS, "Priority level unavailable.");                  \
 /*lint -esym(528,*_observer) -esym(529,*_observer) : Symbol not referenced. */                             \
 NRF_SECTION_SET_ITEM_REGISTER(sdh_state_observers, _prio, static nrf_sdh_state_observer_t const _observer)
 
@@ -206,7 +208,8 @@ typedef struct
  ** @hideinitializer
  */
 #define NRF_SDH_STACK_OBSERVER(_observer, _prio)                                                          \
-STATIC_ASSERT(_prio < NRF_SDH_STACK_OBSERVER_PRIO_LEVELS);                                                \
+STATIC_ASSERT(NRF_SDH_ENABLED, "NRF_SDH_ENABLED not set!");                                               \
+STATIC_ASSERT(_prio < NRF_SDH_STACK_OBSERVER_PRIO_LEVELS, "Priority level unavailable.");                 \
 /*lint -esym(528,*_observer) -esym(529,*_observer) : Symbol not referenced. */                            \
 NRF_SECTION_SET_ITEM_REGISTER(sdh_stack_observers, _prio, static nrf_sdh_stack_observer_t const _observer)
 

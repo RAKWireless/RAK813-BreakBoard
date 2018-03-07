@@ -95,15 +95,91 @@ static inline app_usbd_audio_ctx_t * audio_ctx_get(app_usbd_audio_t const * p_au
  *
  * @param[in] p_inst        Class instance
  * @param[in] event user    Event type @ref app_usbd_audio_user_event_t
- * */
-static inline void user_event_handler(app_usbd_class_inst_t const * p_inst,
-                                      app_usbd_audio_user_event_t event)
+ */
+static inline void user_event_handler(
+    app_usbd_class_inst_t const * p_inst,
+    app_usbd_audio_user_event_t event)
 {
     app_usbd_audio_t const * p_audio = audio_get(p_inst);
     if (p_audio->specific.inst.user_ev_handler != NULL)
     {
         p_audio->specific.inst.user_ev_handler(p_inst, event);
     }
+}
+
+/**
+ * @brief Select interface
+ *
+ * @param[in,out] p_inst    Instance of the class
+ * @param[in]     iface_idx Index of the interface inside class structure
+ * @param[in]     alternate Alternate setting that should be selected
+ */
+static ret_code_t iface_select(
+    app_usbd_class_inst_t const * const p_inst,
+    uint8_t iface_idx,
+    uint8_t alternate)
+{
+    app_usbd_class_iface_conf_t const * p_iface = app_usbd_class_iface_get(p_inst, iface_idx);
+    /* Simple check if this is data interface */
+    uint8_t const ep_count = app_usbd_class_iface_ep_count_get(p_iface);
+    if (ep_count > 0)
+    {
+        if (alternate > 1)
+        {
+            return NRF_ERROR_INVALID_PARAM;
+        }
+        app_usbd_audio_t const * p_audio = audio_get(p_inst);
+        app_usbd_audio_ctx_t   * p_audio_ctx = audio_ctx_get(p_audio);
+        p_audio_ctx->streaming = (alternate != 0);
+
+        uint8_t i;
+        for (i=0; i<ep_count; ++i)
+        {
+            nrf_drv_usbd_ep_t ep_addr =
+                app_usbd_class_ep_address_get(app_usbd_class_iface_ep_get(p_iface, i));
+            if (alternate)
+            {
+                app_usbd_ep_enable(ep_addr);
+            }
+            else
+            {
+                app_usbd_ep_disable(ep_addr);
+            }
+        }
+        return NRF_SUCCESS;
+    }
+    return NRF_ERROR_NOT_SUPPORTED;
+}
+
+static void iface_deselect(
+    app_usbd_class_inst_t const * const p_inst,
+    uint8_t iface_idx)
+{
+    app_usbd_class_iface_conf_t const * p_iface = app_usbd_class_iface_get(p_inst, iface_idx);
+    /* Simple check if this is data interface */
+    if (p_iface->ep_cnt > 0)
+    {
+        app_usbd_audio_t const * p_audio = audio_get(p_inst);
+        app_usbd_audio_ctx_t *   p_audio_ctx = audio_ctx_get(p_audio);
+        p_audio_ctx->streaming = false;
+    }
+    /* Note that all the interface endpoints would be disabled automatically after this function */
+}
+
+static uint8_t iface_selection_get(
+    app_usbd_class_inst_t const * const p_inst,
+    uint8_t iface_idx)
+{
+    app_usbd_class_iface_conf_t const * p_iface = app_usbd_class_iface_get(p_inst, iface_idx);
+    /* Simple check if this is data interface */
+    uint8_t const ep_count = app_usbd_class_iface_ep_count_get(p_iface);
+    if (ep_count > 0)
+    {
+        app_usbd_audio_t const * p_audio = audio_get(p_inst);
+        app_usbd_audio_ctx_t   * p_audio_ctx = audio_ctx_get(p_audio);
+        return (p_audio_ctx->streaming) ? 1 : 0;
+    }
+    return 0;
 }
 
 /**
@@ -119,89 +195,22 @@ static inline void user_event_handler(app_usbd_class_inst_t const * p_inst,
 static ret_code_t setup_req_std_in(app_usbd_class_inst_t const * p_inst,
                                    app_usbd_setup_evt_t const * p_setup_ev)
 {
-    app_usbd_audio_t const * p_audio = audio_get(p_inst);
-    app_usbd_audio_ctx_t *   p_audio_ctx = audio_ctx_get(p_audio);
-
-    switch (p_setup_ev->setup.bmRequest)
+    /* Only Get Descriptor standard IN request is supported by Audio class */
+    if ((app_usbd_setup_req_rec(p_setup_ev->setup.bmRequestType) == APP_USBD_SETUP_REQREC_INTERFACE)
+        &&
+        (p_setup_ev->setup.bmRequest == APP_USBD_SETUP_STDREQ_GET_DESCRIPTOR))
     {
-        case APP_USBD_SETUP_STDREQ_GET_DESCRIPTOR:
+        size_t dsc_len = 0;
+        /* Try to find descriptor in class internals*/
+        void const * p_dsc = app_usbd_class_descriptor_find(
+            p_inst,
+            p_setup_ev->setup.wValue.hb,
+            p_setup_ev->setup.wValue.lb,
+            &dsc_len);
+        if (p_dsc != NULL)
         {
-            size_t dsc_len = 0;
-
-            /* Try to find descriptor in class internals*/
-            void const * p_dsc = app_usbd_class_descriptor_find(p_inst,
-                                                                p_setup_ev->setup.wValue.hb,
-                                                                p_setup_ev->setup.wValue.lb,
-                                                                &dsc_len);
-            if (p_dsc != NULL)
-            {
-                return app_usbd_core_setup_rsp(&(p_setup_ev->setup), p_dsc, dsc_len);
-            }
-
-            break;
+            return app_usbd_core_setup_rsp(&(p_setup_ev->setup), p_dsc, dsc_len);
         }
-        case APP_USBD_SETUP_STDREQ_GET_INTERFACE:
-        {
-
-            size_t tx_maxsize;
-            uint8_t * p_tx_buff = app_usbd_core_setup_transfer_buff_get(&tx_maxsize);
-
-            p_tx_buff[0] = p_audio_ctx->streaming ? 1 : 0;
-
-            return app_usbd_core_setup_rsp(&p_setup_ev->setup,
-                                           p_tx_buff,
-                                           sizeof(uint8_t));
-        }
-        default:
-            break;
-    }
-
-    return NRF_ERROR_NOT_SUPPORTED;
-}
-
-/**
- * @brief Internal SETUP standard OUT request handler
- *
- * @param[in] p_inst        Generic class instance
- * @param[in] p_setup_ev    Setup event
- *
- * @return Standard error code
- * @retval NRF_SUCCESS if request handled correctly
- * @retval NRF_ERROR_NOT_SUPPORTED if request is not supported
- */
-static ret_code_t setup_req_std_out(app_usbd_class_inst_t const * p_inst,
-                                    app_usbd_setup_evt_t const * p_setup_ev)
-{
-    app_usbd_audio_t const * p_audio = audio_get(p_inst);
-    app_usbd_audio_ctx_t *   p_audio_ctx = audio_ctx_get(p_audio);
-
-    switch (p_setup_ev->setup.bmRequest)
-    {
-        case APP_USBD_SETUP_STDREQ_SET_INTERFACE:
-        {
-            uint8_t iface_count = app_usbd_class_iface_count_get(p_inst);
-            app_usbd_class_iface_conf_t const * p_iface = NULL;
-            for (uint8_t j = 0; j < iface_count; ++j)
-            {
-                p_iface = app_usbd_class_iface_get(p_inst, j);
-                if (p_iface->number == p_setup_ev->setup.wIndex.w)
-                {
-                    break;
-                }
-            }
-
-            if (p_iface == NULL)
-            {
-                break;
-            }
-
-            p_audio_ctx->streaming = (p_iface->ep_cnt > 0) &&
-                                     (p_setup_ev->setup.wValue.w == 1);
-
-            return app_usbd_req_std_set_interface(p_inst, p_setup_ev);
-        }
-        default:
-            break;
     }
 
     return NRF_ERROR_NOT_SUPPORTED;
@@ -217,8 +226,9 @@ static ret_code_t setup_req_std_out(app_usbd_class_inst_t const * p_inst,
  * @retval NRF_SUCCESS if request handled correctly
  * @retval NRF_ERROR_NOT_SUPPORTED if request is not supported
  */
-static ret_code_t setup_req_class_in(app_usbd_class_inst_t const * p_inst,
-                                     app_usbd_setup_evt_t const * p_setup_ev)
+static ret_code_t setup_req_class_in(
+    app_usbd_class_inst_t const * p_inst,
+    app_usbd_setup_evt_t const * p_setup_ev)
 {
     switch (p_setup_ev->setup.bmRequest)
     {
@@ -275,8 +285,9 @@ static ret_code_t audio_req_out_data_cb(nrf_drv_usbd_ep_status_t status, void * 
     return NRF_SUCCESS;
 }
 
-static ret_code_t audio_req_out(app_usbd_class_inst_t const * p_inst,
-                                app_usbd_setup_evt_t const * p_setup_ev)
+static ret_code_t audio_req_out(
+    app_usbd_class_inst_t const * p_inst,
+    app_usbd_setup_evt_t const * p_setup_ev)
 {
     app_usbd_audio_t const * p_audio = audio_get(p_inst);
     app_usbd_audio_ctx_t *   p_audio_ctx = audio_ctx_get(p_audio);
@@ -300,7 +311,7 @@ static ret_code_t audio_req_out(app_usbd_class_inst_t const * p_inst,
     NRF_DRV_USBD_TRANSFER_OUT(transfer, p_audio_ctx->request.payload, p_audio_ctx->request.length);
     ret_code_t ret;
     CRITICAL_REGION_ENTER();
-    ret = app_usbd_core_setup_data_transfer(NRF_DRV_USBD_EPOUT0, &transfer);
+    ret = app_usbd_ep_transfer(NRF_DRV_USBD_EPOUT0, &transfer);
     if (ret == NRF_SUCCESS)
     {
         app_usbd_core_setup_data_handler_desc_t desc = {
@@ -325,8 +336,9 @@ static ret_code_t audio_req_out(app_usbd_class_inst_t const * p_inst,
  * @retval NRF_SUCCESS if request handled correctly
  * @retval NRF_ERROR_NOT_SUPPORTED if request is not supported
  */
-static ret_code_t setup_req_class_out(app_usbd_class_inst_t const * p_inst,
-                                      app_usbd_setup_evt_t const * p_setup_ev)
+static ret_code_t setup_req_class_out(
+    app_usbd_class_inst_t const * p_inst,
+    app_usbd_setup_evt_t const * p_setup_ev)
 {
     switch (p_setup_ev->setup.bmRequest)
     {
@@ -353,8 +365,9 @@ static ret_code_t setup_req_class_out(app_usbd_class_inst_t const * p_inst,
  * @retval NRF_SUCCESS if request handled correctly
  * @retval NRF_ERROR_NOT_SUPPORTED if request is not supported
  */
-static ret_code_t setup_event_handler(app_usbd_class_inst_t const * p_inst,
-                                      app_usbd_setup_evt_t const * p_setup_ev)
+static ret_code_t setup_event_handler(
+    app_usbd_class_inst_t const * p_inst,
+    app_usbd_setup_evt_t const * p_setup_ev)
 {
     ASSERT(p_inst != NULL);
     ASSERT(p_setup_ev != NULL);
@@ -375,8 +388,6 @@ static ret_code_t setup_event_handler(app_usbd_class_inst_t const * p_inst,
     {
         switch (app_usbd_setup_req_typ(p_setup_ev->setup.bmRequestType))
         {
-            case APP_USBD_SETUP_REQTYPE_STD:
-                return setup_req_std_out(p_inst, p_setup_ev);
             case APP_USBD_SETUP_REQTYPE_CLASS:
                 return setup_req_class_out(p_inst, p_setup_ev);
             default:
@@ -440,8 +451,9 @@ static inline nrf_drv_usbd_ep_t ep_iso_addr_get(app_usbd_class_inst_t const * p_
 /**
  * @brief @ref app_usbd_class_methods_t::event_handler
  */
-static ret_code_t audio_event_handler(app_usbd_class_inst_t const * p_inst,
-                                      app_usbd_complex_evt_t const * p_event)
+static ret_code_t audio_event_handler(
+    app_usbd_class_inst_t const * p_inst,
+    app_usbd_complex_evt_t const * p_event)
 {
     ASSERT(p_inst != NULL);
     ASSERT(p_event != NULL);
@@ -487,8 +499,9 @@ static ret_code_t audio_event_handler(app_usbd_class_inst_t const * p_inst,
 /**
  * @brief @ref app_usbd_class_methods_t::get_descriptors
  */
-static const void * audio_get_descriptors(app_usbd_class_inst_t const * p_inst,
-                                          size_t * p_size)
+static const void * audio_get_descriptors(
+    app_usbd_class_inst_t const * p_inst,
+    size_t * p_size)
 {
     ASSERT(p_size != NULL);
     app_usbd_audio_t const *  p_audio = audio_get(p_inst);
@@ -500,8 +513,11 @@ static const void * audio_get_descriptors(app_usbd_class_inst_t const * p_inst,
 /** @} */
 
 const app_usbd_class_methods_t app_usbd_audio_class_methods = {
-        .event_handler = audio_event_handler,
-        .get_descriptors = audio_get_descriptors,
+    .event_handler   = audio_event_handler,
+    .get_descriptors = audio_get_descriptors,
+    .iface_select    = iface_select,
+    .iface_deselect  = iface_deselect,
+    .iface_selection_get = iface_selection_get,
 };
 
 
@@ -514,28 +530,30 @@ size_t app_usbd_audio_class_rx_size_get(app_usbd_class_inst_t const * p_inst)
     return (size_t)nrf_drv_usbd_epout_size_get(ep_addr);
 }
 
-ret_code_t app_usbd_audio_class_rx_start(app_usbd_class_inst_t const * p_inst,
-                                         void * p_buff,
-                                         size_t size)
+ret_code_t app_usbd_audio_class_rx_start(
+    app_usbd_class_inst_t const * p_inst,
+    void * p_buff,
+    size_t size)
 {
     nrf_drv_usbd_ep_t ep_addr;
     ep_addr = ep_iso_addr_get(p_inst);
     ASSERT(NRF_USBD_EPISO_CHECK(ep_addr));
 
     NRF_DRV_USBD_TRANSFER_OUT(transfer, p_buff, size);
-    return app_usbd_core_ep_transfer(ep_addr, &transfer);
+    return app_usbd_ep_transfer(ep_addr, &transfer);
 }
 
-ret_code_t app_usbd_audio_class_tx_start(app_usbd_class_inst_t const * p_inst,
-                                         const void * p_buff,
-                                         size_t size)
+ret_code_t app_usbd_audio_class_tx_start(
+    app_usbd_class_inst_t const * p_inst,
+    const void * p_buff,
+    size_t size)
 {
     nrf_drv_usbd_ep_t ep_addr;
     ep_addr = ep_iso_addr_get(p_inst);
     ASSERT(NRF_USBD_EPISO_CHECK(ep_addr));
 
     NRF_DRV_USBD_TRANSFER_IN(transfer, p_buff, size);
-    return app_usbd_core_ep_transfer(ep_addr, &transfer);
+    return app_usbd_ep_transfer(ep_addr, &transfer);
 }
 
 #endif //APP_USBD_CLASS_AUDIO_ENABLED

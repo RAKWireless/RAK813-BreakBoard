@@ -40,14 +40,14 @@
 #ifndef APP_USBD_STRING_DESC_H__
 #define APP_USBD_STRING_DESC_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdint.h>
 #include "sdk_common.h"
 #include "app_usbd.h"
 #include "app_usbd_string_config.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @defgroup app_usbd_string_desc USBD string descriptors

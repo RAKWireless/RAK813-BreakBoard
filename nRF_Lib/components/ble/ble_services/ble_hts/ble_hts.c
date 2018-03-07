@@ -43,6 +43,7 @@
  */
 #include "sdk_common.h"
 #if NRF_MODULE_ENABLED(BLE_HTS)
+#include "ble_err.h"
 #include "ble_hts.h"
 #include <string.h>
 #include "ble_srv_common.h"

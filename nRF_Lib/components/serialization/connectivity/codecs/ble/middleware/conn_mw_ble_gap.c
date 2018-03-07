@@ -546,9 +546,9 @@ uint32_t conn_mw_ble_gap_sec_params_reply(uint8_t const * const p_rx_buf,
 
     if (p_sec_keyset == NULL)
     {
-    	//If no keyset was sent destroy the context.
-    	err_code = conn_ble_gap_sec_context_destroy(*p_conn_handle);
-    	SER_ASSERT(err_code == NRF_SUCCESS, err_code);
+        //If no keyset was sent destroy the context.
+        err_code = conn_ble_gap_sec_context_destroy(*p_conn_handle);
+        SER_ASSERT(err_code == NRF_SUCCESS, err_code);
     }
     sd_err_code = sd_ble_gap_sec_params_reply(*p_conn_handle, sec_status, p_sec_params, p_sec_keyset);
 

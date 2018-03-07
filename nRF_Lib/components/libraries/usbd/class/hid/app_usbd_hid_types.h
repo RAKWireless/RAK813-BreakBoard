@@ -45,6 +45,10 @@
 #include "app_usbd_types.h"
 #include "sdk_common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @defgroup app_usbd_hid_types USB HID class types
  * @ingroup app_usbd_hid
@@ -269,5 +273,9 @@ typedef enum {
 
 
 /** @} */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* APP_USBD_HID_TYPES_H__ */

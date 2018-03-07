@@ -292,6 +292,13 @@ static void adv_evt_handler(es_adv_evt_t evt)
         case ES_ADV_EVT_CONNECTABLE_ADV_STARTED:
             handle_evt(NRF_BLE_ES_EVT_CONNECTABLE_ADV_STARTED);
             break;
+
+        case ES_ADV_EVT_CONNECTABLE_ADV_STOPPED:
+            handle_evt(NRF_BLE_ES_EVT_CONNECTABLE_ADV_STOPPED);
+            break;
+
+        default:
+            break;
     }
 }
 
@@ -391,7 +398,7 @@ void nrf_ble_es_on_ble_evt(ble_evt_t const * p_ble_evt, void * p_context)
     es_flash_on_ble_evt(p_ble_evt);
 }
 
-NRF_SDH_BLE_OBSERVER(m_es_observer, 1, nrf_ble_es_on_ble_evt, NULL);
+NRF_SDH_BLE_OBSERVER(m_es_observer, NRF_BLE_ES_BLE_OBSERVER_PRIO, nrf_ble_es_on_ble_evt, NULL);
 
 
 void nrf_ble_es_on_start_connectable_advertising(void)

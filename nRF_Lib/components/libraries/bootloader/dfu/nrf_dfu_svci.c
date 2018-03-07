@@ -49,6 +49,8 @@
     // No implementation
 #elif defined ( __CC_ARM )
     extern uint32_t* Image$$ER_IROM1$$Base   __attribute__((used));
+#elif defined (__SES_ARM) && defined (__GNUC__)
+    extern uint32_t * _vectors;
 #elif defined ( __GNUC__ )
     extern uint32_t * __isr_vector;
 #elif defined ( __ICCARM__ )
@@ -71,6 +73,8 @@
     // Bootloader start address is defined at project level
 #elif defined (__CC_ARM)
     #define APP_START_ADDR        (uint32_t)&Image$$ER_IROM1$$Base
+#elif defined (__SES_ARM) && defined (__GNUC__)
+    #define APP_START_ADDR        (uint32_t)&_vectors
 #elif defined (__GNUC__)
     #define APP_START_ADDR        (uint32_t)&__isr_vector
 #elif defined (__ICCARM__)

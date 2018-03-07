@@ -37,6 +37,9 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  */
+#include "sdk_common.h"
+#if NRF_MODULE_ENABLED(NFC_AC_REC)
+
 #include "nfc_ac_rec.h"
 #include <string.h>
 #include "nrf_error.h"
@@ -157,3 +160,5 @@ ret_code_t nfc_ac_rec_auxiliary_data_ref_add(nfc_ndef_record_desc_t * p_ac_rec,
 
     return NRF_SUCCESS;
 }
+
+#endif // NRF_MODULE_ENABLED(NFC_AC_REC)

@@ -37,6 +37,8 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  */
+#include "sdk_common.h"
+#if NRF_MODULE_ENABLED(NFC_BLE_PAIR_MSG)
 
 #include "nfc_ble_pair_msg.h"
 #include "nfc_hs_rec.h"
@@ -386,14 +388,14 @@ ret_code_t nfc_lesc_pos_set(uint8_t * p_confirm, uint8_t * p_random)
     }
 }
 
-ret_code_t nfc_lesc_data_update(ble_gap_lesc_oob_data_t * ble_lesc_oob_data)
+ret_code_t nfc_lesc_data_update(ble_gap_lesc_oob_data_t * p_ble_lesc_oob_data)
 {
-    if (ble_lesc_oob_data != NULL)
+    if (p_ble_lesc_oob_data != NULL)
     {
-        if ((ble_lesc_oob_data->c != NULL) && (ble_lesc_oob_data->r != NULL))
+        if ((m_lesc_pos.confirm != NULL) && (m_lesc_pos.random != NULL))
         {
-            memcpy(m_lesc_pos.confirm, ble_lesc_oob_data->c, AD_TYPE_CONFIRM_VALUE_DATA_SIZE);
-            memcpy(m_lesc_pos.random, ble_lesc_oob_data->r, AD_TYPE_RANDOM_VALUE_DATA_SIZE);
+            memcpy(m_lesc_pos.confirm, p_ble_lesc_oob_data->c, AD_TYPE_CONFIRM_VALUE_DATA_SIZE);
+            memcpy(m_lesc_pos.random, p_ble_lesc_oob_data->r, AD_TYPE_RANDOM_VALUE_DATA_SIZE);
 
             return NRF_SUCCESS;
         }
@@ -405,3 +407,5 @@ ret_code_t nfc_lesc_data_update(ble_gap_lesc_oob_data_t * ble_lesc_oob_data)
         return NRF_ERROR_NULL;
     }
 }
+
+#endif // NRF_MODULE_ENABLED(NFC_BLE_PAIR_MSG)

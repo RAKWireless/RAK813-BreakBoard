@@ -380,7 +380,7 @@ ret_code_t nrf_atfifo_get_free(nrf_atfifo_t * const p_fifo, void * const p_var, 
  *
  * @return Pointer to data buffer or NULL if there is no data in the FIFO.
  */
-void const * nrf_atfifo_item_get(nrf_atfifo_t * const p_fifo, nrf_atfifo_item_get_t * p_context);
+void * nrf_atfifo_item_get(nrf_atfifo_t * const p_fifo, nrf_atfifo_item_get_t * p_context);
 
 /**
  * @brief Function for closing the reading operation.

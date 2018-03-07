@@ -44,6 +44,7 @@
 #include "sdk_common.h"
 #if NRF_MODULE_ENABLED(BLE_BPS)
 #include "ble_bps.h"
+#include "ble_err.h"
 #include <string.h>
 #include "nordic_common.h"
 #include "ble_srv_common.h"

@@ -59,7 +59,8 @@ extern "C" {
 #endif //SOFTDEVICE_PRESENT
 #else
 #ifdef SOFTDEVICE_PRESENT
-#define INTERRUPT_PRIORITY_IS_VALID(pri) ((((pri) > 1) && ((pri) < 4)) || (((pri) > 5) && ((pri) < 8)))
+#define INTERRUPT_PRIORITY_IS_VALID(pri) ((((pri) > 1) && ((pri) < 4)) || \
+                                          (((pri) > 4) && ((pri) < 8)))
 #else
 #define INTERRUPT_PRIORITY_IS_VALID(pri) ((pri) < 8)
 #endif //SOFTDEVICE_PRESENT

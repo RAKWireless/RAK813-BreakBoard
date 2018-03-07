@@ -45,11 +45,15 @@ task_switch     PROC
                 IMPORT      task_schedule
 
                 MRS         R0, CONTROL             ; Fetch CONTROL register to R0
+
+                IF :DEF: FLOAT_ABI_HARD
                 TST         R0, #(1 << 2)           ; Check FPCA flag.
                 ITTT        NE
                 VMRSNE      R1, FPSCR               ; If FPCA set, fetch FPSCR.
                 STMDBNE     SP!, {R0, R1}           ; If FPCA set, save FPSCR (also pad stack to 8-byte alignment)
                 VSTMDBNE    SP!, {S0-S31}           ; If FPCA set, save FPU registers.
+                ENDIF
+
                 STMDB       SP!, {R0}               ; Save CONTROL register.
                 AND         R0, R0, #~(1 << 2)      ; Clear FPCA bit.
                 MSR         CONTROL, R0             ; Update CONTROL register.
@@ -66,11 +70,13 @@ task_switch     PROC
                 LDMIA       SP!, {R0}               ; Restore CONTROL register.
                 MSR         CONTROL, R0             ; Update CONTROL register.
 
+                IF :DEF: FLOAT_ABI_HARD
                 TST         R0, #(1 << 2)           ; Check FPCA flag.
                 ITTT        NE
                 VLDMIANE    SP!, {S0-S31}           ; If FPCA set, restore FPU registers.
                 LDMIANE     SP!, {R0, R1}           ; If FPCA set, restore FPSCR (also remove padding).
                 VMSRNE      FPSCR, R1               ; If FPCA set, update FPSCR
+                ENDIF
 
                 MOV         R0, R3                  ; Place optional task argument in R0.
                 BX          LR                      ; Return to new task.

@@ -17,6 +17,9 @@ IF NOT EXIST micro-ecc/uECC.c (
 pushd nrf51_armgcc\armgcc && make && popd
 pushd nrf51_iar\armgcc && make && popd 
 pushd nrf51_keil\armgcc && make && popd
-pushd nrf52_armgcc\armgcc && make && popd
-pushd nrf52_iar\armgcc && make && popd
-pushd nrf52_keil\armgcc && make && popd
+pushd nrf52hf_armgcc\armgcc && make && popd
+pushd nrf52hf_iar\armgcc && make && popd
+pushd nrf52hf_keil\armgcc && make && popd
+pushd nrf52nf_armgcc\armgcc && make && popd
+pushd nrf52nf_iar\armgcc && make && popd
+pushd nrf52nf_keil\armgcc && make && popd

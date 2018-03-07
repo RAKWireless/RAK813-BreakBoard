@@ -14,9 +14,12 @@ if [ ! -f micro-ecc/uECC.c ]; then
 	git clone https://github.com/kmackay/micro-ecc.git	
 fi
 
-pushd nrf51_armgcc/armgcc && make && popd &&
-pushd nrf51_iar/armgcc && make && popd &&
-pushd nrf51_keil/armgcc && make && popd &&
-pushd nrf52_armgcc/armgcc && make && popd &&
-pushd nrf52_iar/armgcc && make && popd &&
-pushd nrf52_keil/armgcc && make && popd
+make -C nrf51_armgcc/armgcc &&
+make -C nrf51_iar/armgcc &&
+make -C nrf51_keil/armgcc &&
+make -C nrf52hf_armgcc/armgcc &&
+make -C nrf52hf_iar/armgcc &&
+make -C nrf52hf_keil/armgcc &&
+make -C nrf52nf_armgcc/armgcc &&
+make -C nrf52nf_iar/armgcc &&
+make -C nrf52nf_keil/armgcc

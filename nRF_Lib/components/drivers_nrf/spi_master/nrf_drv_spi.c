@@ -39,10 +39,8 @@
  */
 #include "sdk_common.h"
 #if NRF_MODULE_ENABLED(SPI)
-#define ENABLED_SPI_COUNT (SPI0_ENABLED+SPI1_ENABLED+SPI2_ENABLED)
-#if ENABLED_SPI_COUNT
-
 #include "nrf_drv_spi.h"
+#if ENABLED_SPI_COUNT
 #include "nrf_drv_common.h"
 #include "nrf_gpio.h"
 #include "nrf_assert.h"
@@ -78,7 +76,7 @@ NRF_LOG_MODULE_REGISTER();
 // suppress: non-standard use of 'defined' preprocessor operator
 /*lint -save -e491*/
 #if (SPI_ONLY && ENABLED_SPI_COUNT) || ((SPI_SPIM_PRESENT) && \
-    (SPI0_WITHOUT_DMA || SPI1_WITHOUT_DMA || SPI1_WITHOUT_DMA))
+    (SPI0_WITHOUT_DMA || SPI1_WITHOUT_DMA || SPI2_WITHOUT_DMA))
     #define SPI_IN_USE 1
 #endif
 
@@ -231,7 +229,7 @@ ret_code_t nrf_drv_spi_init(nrf_drv_spi_t const * const p_instance,
     if (p_config->miso_pin != NRF_DRV_SPI_PIN_NOT_USED)
     {
         miso_pin = p_config->miso_pin;
-        nrf_gpio_cfg_input(miso_pin, NRF_GPIO_PIN_PULLDOWN);
+        nrf_gpio_cfg_input(miso_pin, (nrf_gpio_pin_pull_t)NRF_SPI_DRV_MISO_PULLUP_CFG);
     }
     else
     {
@@ -362,7 +360,7 @@ ret_code_t nrf_drv_spi_transfer(nrf_drv_spi_t const * const p_instance,
 
     NRF_LOG_INFO("Transfer tx_len:%d, rx_len:%d.", tx_buffer_length, rx_buffer_length);
     NRF_LOG_DEBUG("Tx data:");
-    NRF_LOG_HEXDUMP_DEBUG((uint8_t *)p_tx_buffer, tx_buffer_length * sizeof(p_tx_buffer));
+    NRF_LOG_HEXDUMP_DEBUG((uint8_t *)p_tx_buffer, tx_buffer_length * sizeof(p_tx_buffer[0]));
     return nrf_drv_spi_xfer(p_instance, &xfer_desc, 0);
 }
 
@@ -381,7 +379,8 @@ static void finish_transfer(spi_control_block_t * p_cb)
     NRF_LOG_INFO("Transfer completed rx_len:%d.", p_cb->evt.data.done.rx_length);
     NRF_LOG_DEBUG("Rx data:");
     NRF_LOG_HEXDUMP_DEBUG((uint8_t *)p_cb->evt.data.done.p_rx_buffer,
-                          p_cb->evt.data.done.rx_length * sizeof(p_cb->evt.data.done.p_rx_buffer));
+                          p_cb->evt.data.done.rx_length * 
+                          sizeof(p_cb->evt.data.done.p_rx_buffer[0]));
     p_cb->handler(&p_cb->evt, p_cb->p_context);
 }
 

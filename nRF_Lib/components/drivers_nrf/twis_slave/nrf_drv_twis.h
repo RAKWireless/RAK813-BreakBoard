@@ -63,6 +63,19 @@ extern "C" {
  * @brief      TWI slave APIs.
  */
 
+#ifdef TWIS0_ENABLED
+#define TWIS0_INCR TWIS0_ENABLED
+#else
+#define TWIS0_INCR 0
+#endif
+
+#ifdef TWIS1_ENABLED
+#define TWIS1_INCR TWIS1_ENABLED
+#else
+#define TWIS1_INCR 0
+#endif
+
+#define ENABLED_TWIS_COUNT (TWIS0_INCR + TWIS1_INCR)
 /**
  * @brief Event callback function event definitions.
  */

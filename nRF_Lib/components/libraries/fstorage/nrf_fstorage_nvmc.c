@@ -46,52 +46,24 @@
 #include <string.h>
 #include <stdbool.h>
 #include "nrf_nvmc.h"
-
-
-/**@brief   Status flags. */
-typedef struct
-{
-    bool flash_operation_ongoing;    //!< An operation initiated by fstorage is ongoing.
-    bool flash_operation_pending;    //!< The fstorage instance is waiting for a flash operation that was initiated by another module to complete.
-} nrf_fstorage_nvmc_flags_t;
-
-
-/* API function prototypes. */
-static ret_code_t init(nrf_fstorage_t *, void *);
-static ret_code_t uninit(nrf_fstorage_t *, void *);
-static ret_code_t read(nrf_fstorage_t const *, uint32_t, void *, uint32_t);
-static ret_code_t write(nrf_fstorage_t const *, uint32_t, void const *, uint32_t, void *);
-static ret_code_t erase(nrf_fstorage_t const *, uint32_t, uint32_t, void *);
-static bool       is_busy(nrf_fstorage_t const *);
+#include "nrf_atomic.h"
 
 
 static nrf_fstorage_info_t m_flash_info =
 {
 #if   defined(NRF51)
-    .erase_unit    = 1024,
+    .erase_unit = 1024,
 #elif defined(NRF52_SERIES)
-    .erase_unit    = 4096,
-#else
-    #error Family not defined.
+    .erase_unit = 4096,
 #endif
-    .program_unit  = 4,
-    // .erased_value  = 0xFF,
-    // .synchronous   = true,
-};
-
-/* The exported API. */
-nrf_fstorage_api_t nrf_fstorage_nvmc =
-{
-    .init    = init,
-    .uninit  = uninit,
-    .read    = read,
-    .write   = write,
-    .erase   = erase,
-    .is_busy = is_busy
+    .program_unit = 4,
+    .rmap         = true,
+    .wmap         = false,
 };
 
 
-static nrf_fstorage_nvmc_flags_t m_flags;
+ /* An operation initiated by fstorage is ongoing. */
+static nrf_atomic_flag_t m_flash_operation_ongoing;
 
 
 /* Send event to the event handler. */
@@ -122,10 +94,9 @@ static void event_send(nrf_fstorage_t        const * p_fs,
 
 static ret_code_t init(nrf_fstorage_t * p_fs, void * p_param)
 {
-    (void) p_param;
+    UNUSED_PARAMETER(p_param);
 
     p_fs->p_flash_info = &m_flash_info;
-    memset(&m_flags, 0x00, sizeof(m_flags));
 
     return NRF_SUCCESS;
 }
@@ -133,12 +104,10 @@ static ret_code_t init(nrf_fstorage_t * p_fs, void * p_param)
 
 static ret_code_t uninit(nrf_fstorage_t * p_fs, void * p_param)
 {
-    (void) p_param;
+    UNUSED_PARAMETER(p_fs);
+    UNUSED_PARAMETER(p_param);
 
-    /* The memory buffer is re-initialized upon initialization.
-     * The common uninitialization code is run by the caller.
-     * Nothing to do.
-     */
+    (void) nrf_atomic_flag_clear(&m_flash_operation_ongoing);
 
     return NRF_SUCCESS;
 }
@@ -146,6 +115,8 @@ static ret_code_t uninit(nrf_fstorage_t * p_fs, void * p_param)
 
 static ret_code_t read(nrf_fstorage_t const * p_fs, uint32_t src, void * p_dest, uint32_t len)
 {
+    UNUSED_PARAMETER(p_fs);
+
     memcpy(p_dest, (uint32_t*)src, len);
 
     return NRF_SUCCESS;
@@ -158,11 +129,15 @@ static ret_code_t write(nrf_fstorage_t const * p_fs,
                         uint32_t               len,
                         void                 * p_param)
 {
-    m_flags.flash_operation_ongoing = true;
+    if (nrf_atomic_flag_set_fetch(&m_flash_operation_ongoing))
+    {
+        return NRF_ERROR_BUSY;
+    }
 
     nrf_nvmc_write_words(dest, (uint32_t*)p_src, (len / m_flash_info.program_unit));
 
-    m_flags.flash_operation_ongoing = false;
+    /* Clear the flag before sending the event, to allow API calls in the event context. */
+    (void) nrf_atomic_flag_clear(&m_flash_operation_ongoing);
 
     event_send(p_fs, NRF_FSTORAGE_EVT_WRITE_RESULT, dest, len, p_param);
 
@@ -177,7 +152,10 @@ static ret_code_t erase(nrf_fstorage_t const * p_fs,
 {
     uint32_t progress = 0;
 
-    m_flags.flash_operation_ongoing = true;
+    if (nrf_atomic_flag_set_fetch(&m_flash_operation_ongoing))
+    {
+        return NRF_ERROR_BUSY;
+    }
 
     while (progress != len)
     {
@@ -185,7 +163,8 @@ static ret_code_t erase(nrf_fstorage_t const * p_fs,
         progress++;
     }
 
-    m_flags.flash_operation_ongoing = false;
+    /* Clear the flag before sending the event, to allow API calls in the event context. */
+    (void) nrf_atomic_flag_clear(&m_flash_operation_ongoing);
 
     event_send(p_fs, NRF_FSTORAGE_EVT_ERASE_RESULT, page_addr, len, p_param);
 
@@ -193,10 +172,44 @@ static ret_code_t erase(nrf_fstorage_t const * p_fs,
 }
 
 
+static uint8_t const * rmap(nrf_fstorage_t const * p_fs, uint32_t addr)
+{
+    UNUSED_PARAMETER(p_fs);
+
+    return (uint8_t*)addr;
+}
+
+
+static uint8_t * wmap(nrf_fstorage_t const * p_fs, uint32_t addr)
+{
+    UNUSED_PARAMETER(p_fs);
+    UNUSED_PARAMETER(addr);
+
+    /* Not supported. */
+    return NULL;
+}
+
+
 static bool is_busy(nrf_fstorage_t const * p_fs)
 {
-    return m_flags.flash_operation_ongoing;
+    UNUSED_PARAMETER(p_fs);
+
+    return m_flash_operation_ongoing;
 }
+
+
+/* The exported API. */
+nrf_fstorage_api_t nrf_fstorage_nvmc =
+{
+    .init    = init,
+    .uninit  = uninit,
+    .read    = read,
+    .write   = write,
+    .erase   = erase,
+    .rmap    = rmap,
+    .wmap    = wmap,
+    .is_busy = is_busy
+};
 
 
 #endif // NRF_FSTORAGE_ENABLED

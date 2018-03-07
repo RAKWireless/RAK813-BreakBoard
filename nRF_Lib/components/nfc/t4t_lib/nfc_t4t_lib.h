@@ -159,7 +159,11 @@ typedef enum
 {
     NFC_T4T_PARAM_TESTING,      ///< Internal usage only for Unit-Testing.
     NFC_T4T_PARAM_FWI,          ///< Frame Wait Time parameter
-    NFC_T4T_PARAM_SELRES        ///< Parameter for setting 'Protocol' bits for SEL_RES packet
+    NFC_T4T_PARAM_SELRES,       ///< Parameter for setting 'Protocol' bits for SEL_RES packet
+    NFC_T4T_PARAM_NFCID1,       /**< NFCID1 value, data can be 4, 7, or 10 bytes long (single, double, or triple size).
+                                     To use default NFCID1 of specific length pass one byte containing requested length.
+                                     Default 7-byte NFCID1 will be used if this parameter was not set. This parameter can be
+                                     set before nfc_t2t_setup() to set initial NFCID1 and it can be changed later. */
 } nfc_t4t_param_id_t;
 
 /** @brief Callback to pass events from NFCLib to application.

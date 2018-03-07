@@ -68,10 +68,10 @@ extern "C" {
 
 /**@brief   Macro for defining an fstorage instance.
  *
- * @details Users of fstorage must define an instance variable by using this macro.
- *          Each instance variable contains an API implementation, and additional information such
- *          as the program and erase units. The instance variables are placed in the "fs_data"
- *          section of the binary.
+ * Users of fstorage must define an instance variable by using this macro.
+ * Each instance is tied to an API implementation and contains information such
+ * as the program and erase units for the target flash peripheral.
+ * Instance variables are placed in the "fs_data" section of the binary.
  *
  * @param[in]   inst    A definition of an @ref nrf_fstorage_t variable.
  */
@@ -96,7 +96,7 @@ typedef enum
 /**@brief   An fstorage event. */
 typedef struct
 {
-    nrf_fstorage_evt_id_t   id;         //!< The event ID (see @ref nrf_fstorage_evt_id_t).
+    nrf_fstorage_evt_id_t   id;         //!< The event ID.
     ret_code_t              result;     //!< Result of the operation.
     uint32_t                addr;       //!< Address at which the operation was performed.
     uint32_t                len;        //!< Length of the operation.
@@ -111,44 +111,38 @@ typedef struct
 typedef void (*nrf_fstorage_evt_handler_t)(nrf_fstorage_evt_t * p_evt);
 
 
-/* Necessary forward declaration. */
-struct nrf_fstorage_api_t;
-
-
 /**@brief   Information about the implementation and the flash peripheral. */
 typedef struct
 {
     uint32_t erase_unit;        //!< Size of a flash page (in bytes). A flash page is the smallest unit that can be erased.
     uint32_t program_unit;      //!< Size of the smallest programmable unit (in bytes).
-    // uint32_t erased_value;      //!< Value contained in erased flash.
-    // uint8_t  synchronous  : 1;  //!< True if write and erase operations are synchronous.
+    bool     rmap;              //!< The device address space is memory mapped to the MCU address space.
+    bool     wmap;              //!< The device address space is memory mapped to a writable MCU address space.
 } const nrf_fstorage_info_t;
+
+
+/* Necessary forward declaration. */
+struct nrf_fstorage_api_s;
 
 
 /**@brief   An fstorage instance.
  *
  * @details Use the @ref NRF_FSTORAGE_DEF macro to define an fstorage instance.
- *          Each instance must have a unique memory buffer, which is implementation-dependent and
- *          defined in the implementation header file.
  *
- *          An instance contains information about the flash, such as the program and erase units,
- *          and implementation-specific functionality. In addition, every instance must specify the
- *          boundaries of the flash in which the instance is allowed to operate. These boundaries
- *          must be set manually by the user. They provide additional safety
- *          when performing flash operations. However, they do not provide any form of automatic
- *          partitioning of the flash.
+ * An instance is tied to an API implementation and contains information about the flash device,
+ * such as the program and erase units as well and implementation-specific functionality.
  */
 typedef struct
 {
     /**@brief   The API implementation used by this instance. */
-    struct nrf_fstorage_api_t * p_api;
+    struct nrf_fstorage_api_s const * p_api;
 
     /**@brief   Information about the implementation functionality and the flash peripheral. */
     nrf_fstorage_info_t * p_flash_info;
 
     /**@brief   The event handler function.
      *
-     * @details If set to NULL, no events will be sent.
+     * If set to NULL, no events will be sent.
      */
     nrf_fstorage_evt_handler_t evt_handler;
 
@@ -156,7 +150,7 @@ typedef struct
      *          All flash operations must be within the address specified in
      *          this field and @ref end_addr.
      *
-     * @details This field must be set manually.
+     * This field must be set manually.
      */
     uint32_t start_addr;
 
@@ -164,26 +158,30 @@ typedef struct
      *          All flash operations must be within the address specified in
      *          this field and @ref start_addr.
      *
-     * @details   This field must be set manually.
+     * This field must be set manually.
      */
     uint32_t end_addr;
 } nrf_fstorage_t;
 
 
 /**@brief Functions provided by the API implementation. */
-typedef struct
+typedef struct nrf_fstorage_api_s
 {
-    /**@brief Function for initializing the flash peripheral. */
+    /**@brief Initialize the flash peripheral. */
     ret_code_t (*init)(nrf_fstorage_t * p_fs, void * p_param);
-    /**@brief Function for uninitializing the flash peripheral. */
+    /**@brief Uninitialize the flash peripheral. */
     ret_code_t (*uninit)(nrf_fstorage_t * p_fs, void * p_param);
-    /**@brief Function for reading data from flash. */
+    /**@brief Read data from flash. */
     ret_code_t (*read)(nrf_fstorage_t const * p_fs, uint32_t src, void * p_dest, uint32_t len);
-    /**@brief Function for writing bytes to flash. */
+    /**@brief Write bytes to flash. */
     ret_code_t (*write)(nrf_fstorage_t const * p_fs, uint32_t dest, void const * p_src, uint32_t len, void * p_param);
-    /**@brief Function for erasing flash pages. */
+    /**@brief Erase flash pages. */
     ret_code_t (*erase)(nrf_fstorage_t const * p_fs, uint32_t addr, uint32_t len, void * p_param);
-    /**@brief Function for checking if there are any pending flash operations. */
+    /**@brief Map a device address to a readable address within the MCU address space. */
+    uint8_t const * (*rmap)(nrf_fstorage_t const * p_fs, uint32_t addr);
+    /**@brief Map a device address to a writable address within the MCU address space. */
+    uint8_t * (*wmap)(nrf_fstorage_t const * p_fs, uint32_t addr);
+    /**@brief Check if there are any pending flash operations. */
     bool (*is_busy)(nrf_fstorage_t const * p_fs);
 } const nrf_fstorage_api_t;
 
@@ -195,7 +193,7 @@ typedef struct
  * @param[in]   p_param     An optional parameter to pass to the implementation-specific API call.
  *
  * @retval  NRF_SUCCESS         If initialization was successful.
- * @retval  NRF_ERROR_NULL      If @p p_fs or @p p_api or the @p p_mem field in @p p_fs is NULL.
+ * @retval  NRF_ERROR_NULL      If @p p_fs or @p p_api field in @p p_fs is NULL.
  * @retval  NRF_ERROR_INTERNAL  If another error occurred.
  */
 ret_code_t nrf_fstorage_init(nrf_fstorage_t     * p_fs,
@@ -218,7 +216,7 @@ ret_code_t nrf_fstorage_uninit(nrf_fstorage_t * p_fs, void * p_param);
 
 /**@brief   Function for reading data from flash.
  *
- * @details This function copies @p len bytes from @p addr to @p p_dest.
+ * Copy @p len bytes from @p addr to @p p_dest.
  *
  * @param[in]   p_fs    The fstorage instance.
  * @param[in]   addr    Address in flash where to read from.
@@ -240,7 +238,7 @@ ret_code_t nrf_fstorage_read(nrf_fstorage_t const * p_fs,
 
 /**@brief   Function for writing data to flash.
  *
- * @details This function writes @p len bytes from @p p_src to @p dest.
+ * Write @p len bytes from @p p_src to @p dest.
  *
  * When using @ref nrf_fstorage_sd, the data is written by several calls to @ref sd_flash_write if
  * the length of the data exceeds @ref NRF_FSTORAGE_SD_MAX_WRITE_SIZE bytes.
@@ -297,6 +295,28 @@ ret_code_t nrf_fstorage_erase(nrf_fstorage_t const * p_fs,
                               uint32_t               page_addr,
                               uint32_t               len,
                               void                 * p_param);
+
+
+/**@brief   Map a flash address to a pointer in the MCU address space that can be dereferenced.
+ *
+ * @param   p_fs    The fstorage instance.
+ * @param   addr    The address to map.
+ *
+ * @retval  A pointer to the specified address,
+ *          or @c NULL if the address cannot be mapped or if @p p_fs is @c NULL.
+ */
+uint8_t const * nrf_fstorage_rmap(nrf_fstorage_t const * p_fs, uint32_t addr);
+
+
+/**@brief   Map a flash address to a pointer in the MCU address space that can be written to.
+ *
+ * @param   p_fs    The fstorage instance.
+ * @param   addr    The address to map.
+ *
+ * @retval  A pointer to the specified address,
+ *          or @c NULL if the address cannot be mapped or if @p p_fs is @c NULL.
+ */
+uint8_t * nrf_fstorage_wmap(nrf_fstorage_t const * p_fs, uint32_t addr);
 
 
 /**@brief   Function for querying the status of fstorage.

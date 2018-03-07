@@ -185,7 +185,7 @@ static void configure_slot(uint8_t slot_no, uint8_t length, uint8_t const * p_fr
         case ES_FRAME_TYPE_UID:
         // Fall through.
         case ES_FRAME_TYPE_URL:
-            memcpy(p_data_after_ranging_data, &p_frame_data[1], length);
+            memcpy(p_data_after_ranging_data, &p_frame_data[1], length - 1);
             set_ranging_data_for_slot(slot_no, APP_CFG_DEFAULT_RADIO_TX_POWER);
             m_reg.slots[slot_no].adv_frame.length = length + 1; // + 1 for ranging data
             break;

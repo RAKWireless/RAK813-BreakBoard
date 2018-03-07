@@ -246,6 +246,8 @@ void es_adv_on_ble_evt(ble_evt_t const * p_ble_evt)
             if (p_ble_evt->evt.gap_evt.params.timeout.src == BLE_GAP_TIMEOUT_SRC_ADVERTISING &&
                 !m_is_connected)
             {
+                invoke_callback(ES_ADV_EVT_CONNECTABLE_ADV_STOPPED);
+
                 adv_restart();
             }
             break;

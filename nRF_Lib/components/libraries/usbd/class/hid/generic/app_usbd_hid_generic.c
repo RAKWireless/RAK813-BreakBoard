@@ -143,7 +143,7 @@ static inline ret_code_t hid_generic_transfer_set(app_usbd_hid_generic_t const *
 
     NRF_DRV_USBD_TRANSFER_IN(transfer, p_rep_buff->p_buff, p_rep_buff->size);
     CRITICAL_REGION_ENTER();
-    ret = app_usbd_core_ep_transfer(ep_addr, &transfer);
+    ret = app_usbd_ep_transfer(ep_addr, &transfer);
     if (ret == NRF_SUCCESS)
     {
         app_usbd_hid_state_flag_set(&p_generic_ctx->hid_ctx,
@@ -241,7 +241,7 @@ static ret_code_t hid_generic_on_set_report(app_usbd_class_inst_t const * p_inst
 
     ret_code_t ret;
     CRITICAL_REGION_ENTER();
-    ret = app_usbd_core_setup_data_transfer(NRF_DRV_USBD_EPOUT0, &transfer);
+    ret = app_usbd_ep_transfer(NRF_DRV_USBD_EPOUT0, &transfer);
     if (ret == NRF_SUCCESS)
     {
         app_usbd_core_setup_data_handler_desc_t desc = {
@@ -291,7 +291,7 @@ static ret_code_t hid_generic_ep_transfer_out(app_usbd_class_inst_t const * p_in
     p_rep_buff = app_usbd_hid_rep_buff_out_get(&p_generic->specific.inst.hid_inst);
     NRF_DRV_USBD_TRANSFER_OUT(transfer, p_rep_buff->p_buff, p_rep_buff->size);
 
-    return app_usbd_core_ep_transfer(ep_addr, &transfer);
+    return app_usbd_ep_transfer(ep_addr, &transfer);
 }
 
 /**

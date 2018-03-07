@@ -64,9 +64,9 @@ ret_code_t nrf_fstorage_init(nrf_fstorage_t     * p_fs,
         return NRF_ERROR_NULL;
     }
 
-    p_fs->p_api = (struct nrf_fstorage_api_t *) p_api;
+    p_fs->p_api = p_api;
 
-    return ((nrf_fstorage_api_t*)p_fs->p_api)->init(p_fs, p_param);
+    return (p_fs->p_api)->init(p_fs, p_param);
 }
 
 
@@ -85,7 +85,7 @@ ret_code_t nrf_fstorage_uninit(nrf_fstorage_t * p_fs,
         return NRF_ERROR_INVALID_STATE;
     }
 
-    rc = ((nrf_fstorage_api_t *)p_fs->p_api)->uninit(p_fs, p_param);
+    rc = (p_fs->p_api)->uninit(p_fs, p_param);
 
     /* Uninitialize the API. */
     p_fs->p_api        = NULL;
@@ -122,7 +122,7 @@ ret_code_t nrf_fstorage_read(nrf_fstorage_t const * p_fs,
         return NRF_ERROR_INVALID_ADDR;
     }
 
-    return ((nrf_fstorage_api_t *)p_fs->p_api)->read(p_fs, src, p_dest, len);
+    return (p_fs->p_api)->read(p_fs, src, p_dest, len);
 }
 
 
@@ -156,7 +156,7 @@ ret_code_t nrf_fstorage_write(nrf_fstorage_t const * p_fs,
         return NRF_ERROR_INVALID_ADDR;
     }
 
-    return ((nrf_fstorage_api_t *)p_fs->p_api)->write(p_fs, dest, p_src, len, p_context);
+    return (p_fs->p_api)->write(p_fs, dest, p_src, len, p_context);
 }
 
 
@@ -187,14 +187,34 @@ ret_code_t nrf_fstorage_erase(nrf_fstorage_t const * p_fs,
         return NRF_ERROR_INVALID_ADDR;
     }
 
-    return ((nrf_fstorage_api_t *)p_fs->p_api)->erase(p_fs, page_addr, len, p_context);
+    return (p_fs->p_api)->erase(p_fs, page_addr, len, p_context);
+}
+
+
+uint8_t const * nrf_fstorage_rmap(nrf_fstorage_t const * p_fs, uint32_t addr)
+{
+    if (p_fs == NULL)
+    {
+        return NULL;
+    }
+
+    return (p_fs->p_api)->rmap(p_fs, addr);
+}
+
+
+uint8_t * nrf_fstorage_wmap(nrf_fstorage_t const * p_fs, uint32_t addr)
+{
+    if (p_fs == NULL)
+    {
+        return NULL;
+    }
+
+    return (p_fs->p_api)->wmap(p_fs, addr);
 }
 
 
 bool nrf_fstorage_is_busy(nrf_fstorage_t const * p_fs)
 {
-    nrf_fstorage_api_t const * p_api;
-
     /* If a NULL instance is provided, return true if any instance is busy.
      * Uninitialized instances are considered not busy. */
     if ((p_fs == NULL) || (p_fs->p_api == NULL))
@@ -202,12 +222,10 @@ bool nrf_fstorage_is_busy(nrf_fstorage_t const * p_fs)
         for (uint32_t i = 0; i < NRF_FSTORAGE_INSTANCE_CNT; i++)
         {
             p_fs  = NRF_FSTORAGE_INSTANCE_GET(i);   /* cannot be NULL. */
-            p_api = (nrf_fstorage_api_t*)p_fs->p_api;
-
-            if (p_api != NULL)
+            if (p_fs->p_api != NULL)
             {
                 /* p_api->is_busy() cannot be NULL. */
-                if (p_api->is_busy(p_fs))
+                if (p_fs->p_api->is_busy(p_fs))
                 {
                     return true;
                 }
@@ -217,9 +235,7 @@ bool nrf_fstorage_is_busy(nrf_fstorage_t const * p_fs)
         return false;
     }
 
-    p_api = (nrf_fstorage_api_t*)p_fs->p_api;
-
-    return p_api->is_busy(p_fs);
+    return p_fs->p_api->is_busy(p_fs);
 }
 
 

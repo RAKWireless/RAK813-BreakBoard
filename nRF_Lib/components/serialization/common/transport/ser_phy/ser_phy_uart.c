@@ -51,7 +51,12 @@
 
 #define UART_TRANSFER_MAX 255
 
+#if defined(UARTE_PRESENT) && !defined(UART_PRESENT)
+#define SER_UART_IRQ UARTE0_IRQn
+#else
 #define SER_UART_IRQ UART0_IRQn
+#endif
+
 static const nrf_drv_uart_t m_uart = NRF_DRV_UART_INSTANCE(0);
 static const nrf_drv_uart_config_t m_uart_config = {
     .pseltxd            = SER_PHY_UART_TX,

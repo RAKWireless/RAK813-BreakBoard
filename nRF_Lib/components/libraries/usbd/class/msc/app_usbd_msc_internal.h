@@ -111,6 +111,10 @@ typedef enum {
     APP_USBD_MSC_STATE_DATA_OUT_WAIT, /**< Internal module state DATA_OUT_WAIT */
     APP_USBD_MSC_STATE_CSW,           /**< Internal module state CSW           */
     APP_USBD_MSC_STATE_UNSUPPORTED,   /**< Internal module state UNSUPPORTED   */
+    APP_USBD_MSC_STATE_CBW_INVALID,   /**< Endpoint is stalled until
+                                       *   the command @ref APP_USBD_MSC_REQ_BULK_RESET */
+    APP_USBD_MSC_STATE_DEVICE_ERROR,  /**< Endpoint is stalled and it is required
+                                       *   to send PE error when clearing */
 } app_usbd_msc_state_t;
 
 /**

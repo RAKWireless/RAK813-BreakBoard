@@ -46,6 +46,7 @@
 #include <string.h>
 #include "nordic_common.h"
 #include "ble.h"
+#include "ble_err.h"
 #include "ble_srv_common.h"
 #include "app_util.h"
 

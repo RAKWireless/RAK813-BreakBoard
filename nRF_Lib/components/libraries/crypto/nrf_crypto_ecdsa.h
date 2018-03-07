@@ -65,12 +65,12 @@ extern "C" {
  * @note    This creates the value length structure used for nrf_crypto APIs and a
  *          buffer to hold the sign context without using dynamically allocated memory.
  */
-#define NRF_CRYPTO_ECDSA_SIGN_CONTEXT_INSTANCE_CREATE(name)             \
-static uint8_t name ## _buffer[NRF_CRYPTO_ECDSASIGN_CONTEXT_SIZE];      \
-static nrf_value_length_t  name =                                       \
-{                                                                       \
-    .p_value = name ## _buffer,                                         \
-    .length = NRF_CRYPTO_SIGN_CONTEXT_SIZE                              \
+#define NRF_CRYPTO_ECDSA_SIGN_CONTEXT_INSTANCE_CREATE(name)                     \
+__ALIGN(4) static uint8_t name ## _buffer[NRF_CRYPTO_ECDSA_SIGN_CONTEXT_SIZE];  \
+static nrf_value_length_t  name =                                               \
+{                                                                               \
+    .p_value = name ## _buffer,                                                 \
+    .length = NRF_CRYPTO_SIGN_CONTEXT_SIZE                                      \
 }
 
 
@@ -79,12 +79,12 @@ static nrf_value_length_t  name =                                       \
  * @note    This creates the value length structure used for nrf_crypto APIs and a
  *          buffer to hold the verify context without using dynamically allocated memory.
  */
-#define NRF_CRYPTO_VERIFY_CONTEXT_INSTANCE_CREATE(name)                 \
-static uint8_t name ## _buffer[NRF_CRYPTO_ECDSA_VERIFY_CONTEXT_SIZE];   \
-static nrf_value_length_t  name =                                       \
-{                                                                       \
-    .p_value = name ## _buffer,                                         \
-    .length = NRF_CRYPTO_ECDSA_VERIFY_CONTEXT_SIZE                      \
+#define NRF_CRYPTO_VERIFY_CONTEXT_INSTANCE_CREATE(name)                             \
+__ALIGN(4) static uint8_t name ## _buffer[NRF_CRYPTO_ECDSA_VERIFY_CONTEXT_SIZE];    \
+static nrf_value_length_t  name =                                                   \
+{                                                                                   \
+    .p_value = name ## _buffer,                                                     \
+    .length = NRF_CRYPTO_ECDSA_VERIFY_CONTEXT_SIZE                                  \
 }
 
 
@@ -97,12 +97,12 @@ static nrf_value_length_t  name =                                       \
  * @note    This creates the value length structure used for nrf_crypto APIs and a
  *          buffer to hold the signature without using dynamically allocated memory.
  */
-#define NRF_CRYPTO_ECDSA_SIGNATURE_CREATE(name, type)                                           \
-static uint8_t  name ## _buffer[STRING_CONCATENATE(NRF_CRYPTO_ECDSA_SIGNATURE_SIZE_, type)];    \
-static nrf_value_length_t name =                                                                \
-{                                                                                               \
-    .p_value = name ## _buffer,                                                                 \
-    .length = STRING_CONCATENATE(NRF_CRYPTO_ECDSA_SIGNATURE_SIZE_, type)                        \
+#define NRF_CRYPTO_ECDSA_SIGNATURE_CREATE(name, type)                                                       \
+__ALIGN(4) static uint8_t  name ## _buffer[STRING_CONCATENATE(NRF_CRYPTO_ECDSA_SIGNATURE_SIZE_, type)];     \
+static nrf_value_length_t name =                                                                            \
+{                                                                                                           \
+    .p_value = name ## _buffer,                                                                             \
+    .length = STRING_CONCATENATE(NRF_CRYPTO_ECDSA_SIGNATURE_SIZE_, type)                                    \
 }
 
 

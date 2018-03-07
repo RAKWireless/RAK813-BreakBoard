@@ -41,15 +41,15 @@
 #ifndef APP_USBD_REQUEST_H__
 #define APP_USBD_REQUEST_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "sdk_common.h"
 #include "nrf.h"
 #include "nrf_drv_usbd.h"
 #include "app_usbd_descriptor.h"
 #include "app_util_platform.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Compiler support for anonymous unions */
 ANON_UNIONS_ENABLE

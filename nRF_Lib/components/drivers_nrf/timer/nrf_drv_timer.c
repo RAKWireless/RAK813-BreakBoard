@@ -202,7 +202,7 @@ void nrf_drv_timer_increment(nrf_drv_timer_t const * const p_instance)
 uint32_t nrf_drv_timer_capture(nrf_drv_timer_t const * const p_instance,
                                nrf_timer_cc_channel_t cc_channel)
 {
-    ASSERT(m_cb[p_instance->instance_id].state == NRF_DRV_STATE_POWERED_ON);
+    ASSERT(m_cb[p_instance->instance_id].state != NRF_DRV_STATE_UNINITIALIZED);
     ASSERT(cc_channel < p_instance->cc_channel_count);
 
     nrf_timer_task_trigger(p_instance->p_reg,

@@ -49,6 +49,7 @@
 #include "nrf_nvic.h"
 #include "sdk_config.h"
 #include "app_error.h"
+#include "app_util_platform.h"
 
 
 #define NRF_LOG_MODULE_NAME nrf_sdh
@@ -145,6 +146,53 @@ static void sdh_state_observer_notify(nrf_sdh_state_evt_t evt)
 }
 
 
+static void softdevices_evt_irq_enable(void)
+{
+#ifdef SOFTDEVICE_PRESENT
+    ret_code_t ret_code = sd_nvic_EnableIRQ((IRQn_Type)SD_EVT_IRQn);
+    APP_ERROR_CHECK(ret_code);
+#else
+    // In case of serialization, NVIC must be accessed directly.
+    NVIC_EnableIRQ(SD_EVT_IRQn);
+#endif
+}
+
+
+static void softdevice_evt_irq_disable(void)
+{
+#ifdef SOFTDEVICE_PRESENT
+    ret_code_t ret_code = sd_nvic_DisableIRQ((IRQn_Type)SD_EVT_IRQn);
+    APP_ERROR_CHECK(ret_code);
+#else
+    // In case of serialization, NVIC must be accessed directly.
+    NVIC_DisableIRQ(SD_EVT_IRQn);
+#endif
+}
+
+
+#ifndef S140
+static void swi_interrupt_priority_workaround(void)
+{
+    // The priorities of SoftDevice SWI SD_EVT_IRQn and RADIO_NOTIFICATION_IRQn
+    // in version S132 v5.0.0, S112 v5.0.0, S212 v5.0.0 and S332 v5.0.0 are set to 6.
+    // Set their priority to APP_IRQ_PRIORITY_LOWEST (7) so that they don't preempt
+    // peripheral interrupts and vice-versa.
+
+#ifdef SOFTDEVICE_PRESENT
+    ret_code_t ret_code;
+    ret_code = sd_nvic_SetPriority(SD_EVT_IRQn, APP_IRQ_PRIORITY_LOWEST);
+    APP_ERROR_CHECK(ret_code);
+    ret_code = sd_nvic_SetPriority(RADIO_NOTIFICATION_IRQn, APP_IRQ_PRIORITY_LOWEST);
+    APP_ERROR_CHECK(ret_code);
+#else
+    // In case of serialization, NVIC must be accessed directly.
+    NVIC_SetPriority(SD_EVT_IRQn, APP_IRQ_PRIORITY_LOWEST);
+    NVIC_SetPriority(RADIO_NOTIFICATION_IRQn, APP_IRQ_PRIORITY_LOWEST);
+#endif
+}
+#endif
+
+
 ret_code_t nrf_sdh_enable_request(void)
 {
     ret_code_t ret_code;
@@ -171,10 +219,10 @@ ret_code_t nrf_sdh_enable_request(void)
         .source        = NRF_SDH_CLOCK_LF_SRC,
         .rc_ctiv       = NRF_SDH_CLOCK_LF_RC_CTIV,
         .rc_temp_ctiv  = NRF_SDH_CLOCK_LF_RC_TEMP_CTIV,
-    #ifdef S132
-        .accuracy      = NRF_SDH_CLOCK_LF_XTAL_ACCURACY
-    #else
+    #ifdef S140
         .xtal_accuracy = NRF_SDH_CLOCK_LF_XTAL_ACCURACY
+    #else
+        .accuracy      = NRF_SDH_CLOCK_LF_XTAL_ACCURACY
     #endif
     };
 
@@ -193,17 +241,15 @@ ret_code_t nrf_sdh_enable_request(void)
     m_nrf_sdh_continue  = false;
     m_nrf_sdh_suspended = false;
 
-    // Enable BLE event interrupt (interrupt priority has already been set by the stack).
-#ifdef SOFTDEVICE_PRESENT
-    ret_code = sd_nvic_EnableIRQ((IRQn_Type)SD_EVT_IRQn);
-    if (ret_code != NRF_SUCCESS)
-    {
-        return ret_code;
-    }
-#else
-    //In case of serialization, NVIC must be accessed directly.
-    NVIC_EnableIRQ(SD_EVT_IRQn);
+#ifndef S140
+    // Set the interrupt priority after enabling the SoftDevice, since
+    // sd_softdevice_enable() sets the SoftDevice interrupt priority.
+    swi_interrupt_priority_workaround();
 #endif
+
+    // Enable event interrupt.
+    // Interrupt priority has already been set by the stack.
+    softdevices_evt_irq_enable();
 
     // Notify observers about a finished SoftDevice enable process.
     sdh_state_observer_notify(NRF_SDH_EVT_STATE_ENABLED);
@@ -242,15 +288,7 @@ ret_code_t nrf_sdh_disable_request(void)
     m_nrf_sdh_enabled  = false;
     m_nrf_sdh_continue = false;
 
-#ifdef SOFTDEVICE_PRESENT
-    ret_code = sd_nvic_DisableIRQ((IRQn_Type)SD_EVT_IRQn);
-    if (ret_code != NRF_SUCCESS)
-    {
-        return ret_code;
-    }
-#else
-    NVIC_DisableIRQ(SD_EVT_IRQn);
-#endif
+    softdevice_evt_irq_disable();
 
     // Notify observers about a finished SoftDevice enable process.
     sdh_state_observer_notify(NRF_SDH_EVT_STATE_DISABLED);
@@ -289,12 +327,8 @@ void nrf_sdh_suspend(void)
     {
         return;
     }
-#ifdef SOFTDEVICE_PRESENT
-    ret_code_t ret_code = sd_nvic_DisableIRQ((IRQn_Type)SD_EVT_IRQn);
-    APP_ERROR_CHECK(ret_code);
-#else
-    NVIC_DisableIRQ(SD_EVT_IRQn);
-#endif
+
+    softdevice_evt_irq_disable();
     m_nrf_sdh_suspended = true;
 }
 
@@ -306,17 +340,15 @@ void nrf_sdh_resume(void)
         return;
     }
 
+    // Force calling ISR again to make sure that events not previously pulled have been processed.
 #ifdef SOFTDEVICE_PRESENT
-    // Force calling ISR again to make sure that events not pulled previously have been processed.
-    ret_code_t ret_code;
-    ret_code = sd_nvic_SetPendingIRQ((IRQn_Type)SD_EVT_IRQn);
-    APP_ERROR_CHECK(ret_code);
-    ret_code = sd_nvic_EnableIRQ((IRQn_Type)SD_EVT_IRQn);
+    ret_code_t ret_code = sd_nvic_SetPendingIRQ((IRQn_Type)SD_EVT_IRQn);
     APP_ERROR_CHECK(ret_code);
 #else
     NVIC_SetPendingIRQ((IRQn_Type)SD_EVT_IRQn);
-    NVIC_EnableIRQ(SD_EVT_IRQn);
 #endif
+
+    softdevices_evt_irq_enable();
 
     m_nrf_sdh_suspended = false;
 }
@@ -366,10 +398,10 @@ void SD_EVT_IRQHandler(void)
  */
 static void appsh_events_poll(void * p_event_data, uint16_t event_size)
 {
-    nrf_sdh_evts_poll();
-
     UNUSED_PARAMETER(p_event_data);
     UNUSED_PARAMETER(event_size);
+
+    nrf_sdh_evts_poll();
 }
 
 

@@ -343,6 +343,7 @@ void nrf_pwr_mgmt_run(void)
     {
         ret_code_t ret_code = sd_app_evt_wait();
         ASSERT((ret_code == NRF_SUCCESS) || (ret_code == NRF_ERROR_SOFTDEVICE_NOT_ENABLED));
+        UNUSED_VARIABLE(ret_code);
     }
     else
 #endif // SOFTDEVICE_PRESENT
@@ -408,6 +409,7 @@ static void shutdown_process(void)
         {
             ret_code_t ret_code = sd_power_system_off();
             ASSERT((ret_code == NRF_SUCCESS) || (ret_code == NRF_ERROR_SOFTDEVICE_NOT_ENABLED));
+            UNUSED_VARIABLE(ret_code);
         }
 #endif // SOFTDEVICE_PRESENT
         nrf_power_system_off();

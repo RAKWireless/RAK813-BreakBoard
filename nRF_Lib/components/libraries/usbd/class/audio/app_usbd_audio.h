@@ -40,10 +40,6 @@
 #ifndef APP_USBD_AUDIO_H__
 #define APP_USBD_AUDIO_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -57,6 +53,9 @@ extern "C" {
 #include "app_usbd_audio_desc.h"
 #include "app_usbd_audio_internal.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @defgroup app_usbd_audio USB AUDIO class
@@ -66,11 +65,11 @@ extern "C" {
  *
  * @details Reference specifications:
  * - "Universal Serial Bus Device Class Definition for Audio Devices"
- *   	Release 1.0,  March 18, 1998.
+ *      Release 1.0,  March 18, 1998.
  * - "Universal Serial Bus Device Class Definition for Audio Data Formats"
- *   	Release 1.0, March 18, 1998.
+ *      Release 1.0, March 18, 1998.
  * - "Universal Serial Bus Device Class Definition for Terminal Types"
- *   	Release 1.0, March 18, 1998.
+ *      Release 1.0, March 18, 1998.
  *
  * @{
  */
@@ -85,10 +84,10 @@ extern "C" {
 typedef struct { } app_usbd_audio_t;
 #else
 /*lint -save -e10 -e26 -e123 -e505 */
-APP_USBD_CLASS_TYPEDEF(app_usbd_audio,            \
-            APP_USBD_AUDIO_CONFIG(0, 1),          \
-            APP_USBD_AUDIO_INSTANCE_SPECIFIC_DEC, \
-            APP_USBD_AUDIO_DATA_SPECIFIC_DEC      \
+APP_USBD_CLASS_TYPEDEF(app_usbd_audio,    \
+    APP_USBD_AUDIO_CONFIG(0, 1),          \
+    APP_USBD_AUDIO_INSTANCE_SPECIFIC_DEC, \
+    APP_USBD_AUDIO_DATA_SPECIFIC_DEC      \
 );
 /*lint -restore*/
 #endif
@@ -199,9 +198,10 @@ size_t app_usbd_audio_class_rx_size_get(app_usbd_class_inst_t const * p_inst);
  * @note This function should be called in reaction to a SOF event.
  *       Isochronous endpoints are double buffered and they are automatically switched at every SOF.
  */
-ret_code_t app_usbd_audio_class_rx_start(app_usbd_class_inst_t const * p_inst,
-                                         void * p_buff,
-                                         size_t size);
+ret_code_t app_usbd_audio_class_rx_start(
+    app_usbd_class_inst_t const * p_inst,
+    void * p_buff,
+    size_t size);
 
 /**
  * @brief Start copying audio data to the endpoint buffer.
@@ -218,9 +218,10 @@ ret_code_t app_usbd_audio_class_rx_start(app_usbd_class_inst_t const * p_inst,
  * @note This function should be called in reaction to a SOF event.
  *       Isochronous endpoints are double buffered and they are automatically switched at every SOF.
  */
-ret_code_t app_usbd_audio_class_tx_start(app_usbd_class_inst_t const * p_inst,
-                                         const void * p_buff,
-                                         size_t size);
+ret_code_t app_usbd_audio_class_tx_start(
+    app_usbd_class_inst_t const * p_inst,
+    const void * p_buff,
+    size_t size);
 
 /** @} */
 

@@ -55,6 +55,7 @@ typedef enum
 {
     ES_ADV_EVT_NON_CONN_ADV,
     ES_ADV_EVT_CONNECTABLE_ADV_STARTED,
+    ES_ADV_EVT_CONNECTABLE_ADV_STOPPED,
 } es_adv_evt_t;
 
 /** @brief Eddystone Advertiser event handler. */

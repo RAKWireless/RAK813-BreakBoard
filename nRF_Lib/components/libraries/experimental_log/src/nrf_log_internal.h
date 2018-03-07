@@ -102,6 +102,19 @@
 
 #define NRF_LOG_MAX_NUM_OF_ARGS         6
 
+/*
+ * For GCC sections are sorted in the group by the linker. For IAR and KEIL it is assumed that linker will sort
+ * dynamic and const section in the same order (but in different locations). Proper message formatting
+ * is based on that assumption.
+ */
+#if defined(__GNUC__)
+#define NRF_LOG_DYNAMIC_SECTION_NAME(_module_name) CONCAT_2(log_dynamic_data_,_module_name)
+#define NRF_LOG_CONST_SECTION_NAME(_module_name) CONCAT_2(log_const_data_,_module_name)
+#else
+#define NRF_LOG_DYNAMIC_SECTION_NAME(_module_name) log_dynamic_data
+#define NRF_LOG_CONST_SECTION_NAME(_module_name)   log_const_data
+#endif
+
 #define NRF_LOG_MODULE_DATA CONCAT_3(m_nrf_log_,NRF_LOG_MODULE_NAME,_logs_data)
 #define NRF_LOG_MODULE_DATA_DYNAMIC  CONCAT_2(NRF_LOG_MODULE_DATA,_dynamic)
 #define NRF_LOG_MODULE_DATA_CONST  CONCAT_2(NRF_LOG_MODULE_DATA,_const)
@@ -367,6 +380,7 @@ extern nrf_log_module_dynamic_data_t NRF_LOG_MODULE_DATA_DYNAMIC;
 #define HEADER_TYPE_STD     1U
 #define HEADER_TYPE_HEXDUMP 2U
 #define HEADER_TYPE_PUSHED  0U
+#define HEADER_TYPE_INVALID 3U
 
 typedef struct
 {

@@ -41,7 +41,16 @@
 #if NRF_MODULE_ENABLED(MEM_MANAGER)
 #include "mem_manager.h"
 #include "nrf_assert.h"
+
 #define NRF_LOG_MODULE_NAME mem_mngr
+
+#if MEM_MANAGER_CONFIG_LOG_ENABLED
+#define NRF_LOG_LEVEL       MEM_MANAGER_CONFIG_LOG_LEVEL
+#define NRF_LOG_INFO_COLOR  MEM_MANAGER_CONFIG_INFO_COLOR
+#define NRF_LOG_DEBUG_COLOR MEM_MANAGER_CONFIG_DEBUG_COLOR
+#else //MEM_MANAGER_CONFIG_LOG_ENABLED
+#define NRF_LOG_LEVEL       0
+#endif //MEM_MANAGER_CONFIG_LOG_ENABLED
 #include "nrf_log.h"
 NRF_LOG_MODULE_REGISTER();
 
@@ -140,7 +149,7 @@ NRF_LOG_MODULE_REGISTER();
 
 /**
  * @brief Macro for verifying requested size of memory does not exceed maximum block
- *       size supported by the module. Returnson failure.
+ *       size supported by the module. Returns on failure.
  *
  * @param[in] SIZE Requested size to be allocated.
  */
@@ -164,7 +173,7 @@ NRF_LOG_MODULE_REGISTER();
 #endif //MEM_MANAGER_DISABLE_API_PARAM_CHECK
 
 
-/**@brief Setting defualts in case XXSmall block not used by application. */
+/**@brief Setting defaults in case XXSmall block not used by application. */
 #ifndef MEMORY_MANAGER_XXSMALL_BLOCK_COUNT
     #define MEMORY_MANAGER_XXSMALL_BLOCK_COUNT 0
     #define MEMORY_MANAGER_XXSMALL_BLOCK_SIZE  0
@@ -174,7 +183,7 @@ NRF_LOG_MODULE_REGISTER();
 #endif // MEMORY_MANAGER_XXSMALL_BLOCK_SIZE
 
 
-/**@brief Setting defualts in case XSmall block not used by application. */
+/**@brief Setting defaults in case XSmall block not used by application. */
 #ifndef MEMORY_MANAGER_XSMALL_BLOCK_COUNT
    #define MEMORY_MANAGER_XSMALL_BLOCK_COUNT   0
    #define MEMORY_MANAGER_XSMALL_BLOCK_SIZE    0
@@ -184,7 +193,7 @@ NRF_LOG_MODULE_REGISTER();
 #endif // MEMORY_MANAGER_XSMALL_BLOCK_SIZE
 
 
-/**@brief Setting defualts in case Small block not used by application. */
+/**@brief Setting defaults in case Small block not used by application. */
 #ifndef MEMORY_MANAGER_SMALL_BLOCK_COUNT
    #define MEMORY_MANAGER_SMALL_BLOCK_COUNT    0
    #define MEMORY_MANAGER_SMALL_BLOCK_SIZE     0
@@ -194,7 +203,7 @@ NRF_LOG_MODULE_REGISTER();
 #endif // MEMORY_MANAGER_SMALL_BLOCK_COUNT
 
 
-/**@brief Setting defualts in case Medium block not used by application. */
+/**@brief Setting defaults in case Medium block not used by application. */
 #ifndef MEMORY_MANAGER_MEDIUM_BLOCK_COUNT
    #define MEMORY_MANAGER_MEDIUM_BLOCK_COUNT   0
    #define MEMORY_MANAGER_MEDIUM_BLOCK_SIZE    0
@@ -204,7 +213,7 @@ NRF_LOG_MODULE_REGISTER();
 #endif // MEMORY_MANAGER_MEDIUM_BLOCK_COUNT
 
 
-/**@brief Setting defualts in case Large block not used by application. */
+/**@brief Setting defaults in case Large block not used by application. */
 #ifndef MEMORY_MANAGER_LARGE_BLOCK_COUNT
    #define MEMORY_MANAGER_LARGE_BLOCK_COUNT    0
    #define MEMORY_MANAGER_LARGE_BLOCK_SIZE     0
@@ -214,7 +223,7 @@ NRF_LOG_MODULE_REGISTER();
 #endif // MEMORY_MANAGER_LARGE_BLOCK_COUNT
 
 
-/**@brief Setting defualts in case XLarge block not used by application. */
+/**@brief Setting defaults in case XLarge block not used by application. */
 #ifndef MEMORY_MANAGER_XLARGE_BLOCK_COUNT
    #define MEMORY_MANAGER_XLARGE_BLOCK_COUNT   0
    #define MEMORY_MANAGER_XLARGE_BLOCK_SIZE    0
@@ -224,7 +233,7 @@ NRF_LOG_MODULE_REGISTER();
 #endif // MEMORY_MANAGER_XLARGE_BLOCK_COUNT
 
 
-/**@brief Setting defualts in case XXLarge block not used by application. */
+/**@brief Setting defaults in case XXLarge block not used by application. */
 #ifndef MEMORY_MANAGER_XXLARGE_BLOCK_COUNT
    #define MEMORY_MANAGER_XXLARGE_BLOCK_COUNT  0
    #define MEMORY_MANAGER_XXLARGE_BLOCK_SIZE   0
@@ -435,7 +444,7 @@ static const uint32_t m_block_size[BLOCK_CAT_COUNT] =
     MEMORY_MANAGER_XXLARGE_BLOCK_SIZE
 };
 
-/**@brief Lookup table for block start index for each block caetgory. */
+/**@brief Lookup table for block start index for each block category. */
 static const uint32_t m_block_start[BLOCK_CAT_COUNT] =
 {
     XXSMALL_BLOCK_START,
@@ -626,7 +635,7 @@ static void block_allocate(uint32_t block_index)
 
 uint32_t nrf_mem_init(void)
 {
-    NRF_LOG_DEBUG("[MM]: >> nrf_mem_init.");
+    NRF_LOG_DEBUG(">> %s.", (uint32_t)__func__);
 
     SDK_MUTEX_INIT(m_mm_mutex);
 
@@ -644,12 +653,12 @@ uint32_t nrf_mem_init(void)
 #endif // MEM_MANAGER_DISABLE_API_PARAM_CHECK
 
 #ifdef MEM_MANAGER_ENABLE_DIAGNOSTICS
-        nrf_mem_diagnose();
+    nrf_mem_diagnose();
 #endif // MEM_MANAGER_ENABLE_DIAGNOSTICS
 
     MM_MUTEX_UNLOCK();
 
-    NRF_LOG_DEBUG("[MM]: << nrf_mem_init.");
+    NRF_LOG_DEBUG("<< %s.", (uint32_t)__func__);
 
     return NRF_SUCCESS;
 }
@@ -665,7 +674,7 @@ uint32_t nrf_mem_reserve(uint8_t ** pp_buffer, uint32_t * p_size)
 
     VERIFY_REQUESTED_SIZE(requested_size);
 
-    NRF_LOG_DEBUG("[MM]: >> nrf_mem_reserve, size 0x%04lX.", requested_size);
+    NRF_LOG_DEBUG(">> %s, size 0x%04lX.", (uint32_t)__func__, requested_size);
 
     MM_MUTEX_LOCK();
 
@@ -674,7 +683,7 @@ uint32_t nrf_mem_reserve(uint8_t ** pp_buffer, uint32_t * p_size)
     uint32_t       memory_index = m_block_mem_start[block_cat];
     uint32_t       err_code     = (NRF_ERROR_NO_MEM | NRF_ERROR_MEMORY_MANAGER_ERR_BASE);
 
-    NRF_LOG_DEBUG("[MM]: Start index for the pool = 0x%08lX, total block count 0x%08X",
+    NRF_LOG_DEBUG("Start index for the pool = 0x%08lX, total block count 0x%08X",
            block_index,
            TOTAL_BLOCK_COUNT);
 
@@ -684,7 +693,7 @@ uint32_t nrf_mem_reserve(uint8_t ** pp_buffer, uint32_t * p_size)
 
         if (is_block_free(block_index) == true)
         {
-            NRF_LOG_DEBUG("[MM]: Reserving block 0x%08lX", block_index);
+            NRF_LOG_DEBUG("Reserving block 0x%08lX", block_index);
 
             // Search succeeded, found free block.
             err_code     = NRF_SUCCESS;
@@ -706,7 +715,7 @@ uint32_t nrf_mem_reserve(uint8_t ** pp_buffer, uint32_t * p_size)
     }
     if (err_code != NRF_SUCCESS)
     {
-        NRF_LOG_DEBUG ("[MM]: Memory reservation result %d, memory %p, size %d!",
+        NRF_LOG_DEBUG("Memory reservation result %d, memory %p, size %d!",
                 err_code,
                 (uint32_t)(*pp_buffer),
                 (*p_size));
@@ -718,7 +727,7 @@ uint32_t nrf_mem_reserve(uint8_t ** pp_buffer, uint32_t * p_size)
 
     MM_MUTEX_UNLOCK();
 
-    NRF_LOG_DEBUG("[MM]: << nrf_mem_reserve %p, result 0x%08lX.",
+    NRF_LOG_DEBUG("<< %s %p, result 0x%08lX.", (uint32_t)__func__,
                  (uint32_t)(*pp_buffer), err_code);
 
     return err_code;
@@ -746,17 +755,17 @@ void * nrf_calloc(uint32_t count, uint32_t size)
     uint8_t * buffer = NULL;
     uint32_t allocated_size = (size * count);
 
-    NRF_LOG_DEBUG ("[nrf_calloc]: Requested size %d, count %d", allocated_size, count);
+    NRF_LOG_DEBUG("[%s]: Requested size %d, count %d", (uint32_t)__func__, allocated_size, count);
 
-    uint32_t retval = nrf_mem_reserve(&buffer,&allocated_size);
+    uint32_t retval = nrf_mem_reserve(&buffer, &allocated_size);
     if (retval == NRF_SUCCESS)
     {
-        NRF_LOG_DEBUG ("[nrf_calloc]: buffer %p, total size %d", (uint32_t)buffer, allocated_size);
+        NRF_LOG_DEBUG("[%s]: buffer %p, total size %d", (uint32_t)__func__, (uint32_t)buffer, allocated_size);
         memset(buffer,0, allocated_size);
     }
     else
     {
-        NRF_LOG_DEBUG("[nrf_calloc]: Failed to allocate memory %d", allocated_size);
+        NRF_LOG_DEBUG("[%s]: Failed to allocate memory %d", (uint32_t)__func__, allocated_size);
         buffer = NULL;
     }
 
@@ -769,7 +778,7 @@ void nrf_free(void * p_mem)
     VERIFY_MODULE_INITIALIZED_VOID();
     NULL_PARAM_CHECK_VOID(p_mem);
 
-    NRF_LOG_DEBUG("[MM]: >> nrf_free %p.", (uint32_t)p_mem);
+    NRF_LOG_DEBUG(">> %s %p.", (uint32_t)__func__, (uint32_t)p_mem);
 
     MM_MUTEX_LOCK();
 
@@ -781,7 +790,7 @@ void nrf_free(void * p_mem)
         if (&m_memory[memory_index] == p_mem)
         {
             // Found a free block of memory, assign.
-            NRF_LOG_DEBUG("[MM]: << Freeing block %d.", index);
+            NRF_LOG_DEBUG("<< Freeing block %d.", index);
             block_init(index);
             break;
         }
@@ -790,7 +799,7 @@ void nrf_free(void * p_mem)
 
     MM_MUTEX_UNLOCK();
 
-    NRF_LOG_DEBUG("[MM]: << nrf_free.");
+    NRF_LOG_DEBUG("<< %s.", (uint32_t)__func__);
     return;
 }
 
@@ -898,10 +907,10 @@ void nrf_mem_diagnose(void)
 {
     uint32_t in_use = 0;
 
-    NRF_LOG_DEBUG ("");
-    NRF_LOG_DEBUG ("+------------+------------+------------+------------+------------+------------+");
-    NRF_LOG_DEBUG ("| Block      | Size       | Total      | In Use     | Min Alloc  | Max Alloc  |");
-    NRF_LOG_DEBUG ("+------------+------------+------------+------------+------------+------------+");
+    NRF_LOG_DEBUG("");
+    NRF_LOG_DEBUG("+------------+------------+------------+------------+------------+------------+");
+    NRF_LOG_DEBUG("| Block      | Size       | Total      | In Use     | Min Alloc  | Max Alloc  |");
+    NRF_LOG_DEBUG("+------------+------------+------------+------------+------------+------------+");
 
     print_block_info(BLOCK_CAT_XXS, &in_use);
     print_block_info(BLOCK_CAT_XS, &in_use);
@@ -911,10 +920,10 @@ void nrf_mem_diagnose(void)
     print_block_info(BLOCK_CAT_XL, &in_use);
     print_block_info(BLOCK_CAT_XXL, &in_use);
 
-    NRF_LOG_DEBUG ("+------------+------------+------------+------------+------------+------------+");
-    NRF_LOG_DEBUG ("| Total      | %d      | %d        | %d",
+    NRF_LOG_DEBUG("+------------+------------+------------+------------+------------+------------+");
+    NRF_LOG_DEBUG("| Total      | %d      | %d        | %d",
             TOTAL_MEMORY_SIZE, TOTAL_BLOCK_COUNT,in_use);
-    NRF_LOG_DEBUG ("+------------+------------+------------+------------+------------+------------+");
+    NRF_LOG_DEBUG("+------------+------------+------------+------------+------------+------------+");
 }
 
 #endif // MEM_MANAGER_ENABLE_DIAGNOSTICS

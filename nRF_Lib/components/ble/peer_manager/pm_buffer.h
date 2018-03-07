@@ -73,7 +73,7 @@ extern "C" {
 do                                                                        \
 {                                                                         \
     __ALIGN(4) static uint8_t buffer_memory[(n_blocks) * (block_size)];   \
-    __ALIGN(4) static uint8_t mutex_memory[MUTEX_STORAGE_SIZE(n_blocks)]; \
+               static uint8_t mutex_memory[MUTEX_STORAGE_SIZE(n_blocks)]; \
     err_code = pm_buffer_init((p_buffer),                                 \
                                buffer_memory,                             \
                               (n_blocks) * (block_size),                  \

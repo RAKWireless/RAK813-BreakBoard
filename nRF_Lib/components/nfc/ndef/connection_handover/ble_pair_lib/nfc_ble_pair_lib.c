@@ -37,9 +37,8 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  */
-
- #include "sdk_config.h"
- #if NFC_BLE_PAIR_LIB_ENABLED
+#include "sdk_common.h"
+#if NRF_MODULE_ENABLED(NFC_BLE_PAIR_LIB)
 
 #include "nfc_ble_pair_lib.h"
 #include "sdk_macros.h"
@@ -47,7 +46,6 @@
 #include "nrf_drv_rng.h"
 #include "nfc_t2t_lib.h"
 #include "nfc_ble_pair_msg.h"
-#include "peer_manager.h"
 #include "ecc.h"
 #include "nrf_sdh_ble.h"
 
@@ -99,9 +97,9 @@ static nfc_pairing_mode_t        m_pairing_mode;                        /**< Cur
 static ble_gap_lesc_oob_data_t   m_ble_lesc_oob_data;                   /**< LESC OOB data used in LESC OOB pairing mode. */
 static ble_gap_sec_params_t      m_sec_param;                           /**< Current Peer Manager secure parameters configuration. */
 
-static bool     m_connected         = false;                            /**< Indicates if device is connected. */
-static uint16_t m_conn_handle       = BLE_CONN_HANDLE_INVALID;          /**< Handle of the current connection. */
-static bool     m_pending_advertise = false;                            /**< Flag used to indicate pending advertising that will be started after disconnection. */
+static volatile bool m_connected         = false;                       /**< Indicates if device is connected. */
+static uint16_t      m_conn_handle       = BLE_CONN_HANDLE_INVALID;     /**< Handle of the current connection. */
+static bool          m_pending_advertise = false;                       /**< Flag used to indicate pending advertising that will be started after disconnection. */
 
 __ALIGN(4) static ble_gap_lesc_p256_pk_t m_lesc_pk;                     /**< LESC ECC Public Key. */
 __ALIGN(4) static ble_gap_lesc_p256_sk_t m_lesc_sk;                     /**< LESC ECC Secret Key. */
@@ -194,7 +192,10 @@ static void nfc_callback(void            * p_context,
                 m_pending_advertise = true;
 
                 err_code = sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
-                APP_ERROR_CHECK(err_code);
+                if (err_code != NRF_ERROR_INVALID_STATE)
+                {
+                    APP_ERROR_CHECK(err_code);
+                }
             }
             else
             {
@@ -545,38 +546,6 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 
     switch (p_ble_evt->header.evt_id)
     {
-        // Set up proper MITM, OOB and LESC flags depending on peer flags to support either
-        // Legacy OOB or LESC OOB pairing mode.
-        case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
-            NRF_LOG_DEBUG("BLE_GAP_EVT_SEC_PARAMS_REQUEST");
-
-            if (m_pairing_mode == NFC_PAIRING_MODE_GENERIC_OOB)
-            {
-                ble_gap_evt_sec_params_request_t * p_peer_sec_params =
-                    (ble_gap_evt_sec_params_request_t *)&p_ble_evt->evt.gap_evt.params;
-
-                if (p_peer_sec_params->peer_params.lesc)
-                {
-                    NRF_LOG_DEBUG("LESC OOB mode flags set.");
-
-                    m_sec_param.mitm  = 0;
-                    m_sec_param.oob   = 0;
-                    m_sec_param.lesc  = 1;
-                }
-                else
-                {
-                    NRF_LOG_DEBUG("Legacy OOB mode flags set.");
-
-                    m_sec_param.mitm  = 1;
-                    m_sec_param.oob   = 1;
-                    m_sec_param.lesc  = 0;
-                }
-
-                err_code = pm_sec_params_set(&m_sec_param);
-                APP_ERROR_CHECK(err_code);
-            }
-            break;
-
         // Upon authorization key request, reply with Temporary Key that was read from the NFC tag
         case BLE_GAP_EVT_AUTH_KEY_REQUEST:
             NRF_LOG_DEBUG("BLE_GAP_EVT_AUTH_KEY_REQUEST");
@@ -618,10 +587,6 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
             break;
 
         case BLE_GAP_EVT_CONNECTED:
-            // Stop advertising if device is connected
-            err_code = ble_advertising_start(m_p_advertising, BLE_ADV_MODE_IDLE);
-            APP_ERROR_CHECK(err_code);
-
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
             m_connected = true;
             break;
@@ -677,4 +642,45 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
     }
 }
 
-#endif // NFC_BLE_PAIR_LIB_ENABLED
+ret_code_t nfc_ble_pair_on_pm_params_req(pm_evt_t const * p_evt)
+{
+    ret_code_t err_code = NRF_SUCCESS;
+
+    NRF_LOG_DEBUG("PM_EVT_CONN_SEC_PARAMS_REQ");
+
+    // Dynamic security parameters changes are needed only
+    // by NFC_PAIRING_MODE_GENERIC_OOB pairing mode.
+    if (m_pairing_mode == NFC_PAIRING_MODE_GENERIC_OOB)
+    {
+        // Check if pointer to the Peer Manager event is not NULL.
+        VERIFY_PARAM_NOT_NULL(p_evt);
+
+        // Set up proper MITM, OOB and LESC flags depending on peer LESC flag
+        // to support either Legacy OOB or LESC OOB pairing mode.
+        if (p_evt->params.conn_sec_params_req.p_peer_params->lesc)
+        {
+            NRF_LOG_DEBUG("LESC OOB mode flags set.");
+
+            m_sec_param.mitm  = 0;
+            m_sec_param.oob   = 0;
+            m_sec_param.lesc  = 1;
+        }
+        else
+        {
+            NRF_LOG_DEBUG("Legacy OOB mode flags set.");
+
+            m_sec_param.mitm  = 1;
+            m_sec_param.oob   = 1;
+            m_sec_param.lesc  = 0;
+        }
+
+        // Reply with new security parameters to the Peer Manager.
+        err_code = pm_conn_sec_params_reply(p_evt->conn_handle,
+                                            &m_sec_param,
+                                            p_evt->params.conn_sec_params_req.p_context);
+    }
+
+    return err_code;
+}
+
+#endif // NRF_MODULE_ENABLED(NFC_BLE_PAIR_LIB)

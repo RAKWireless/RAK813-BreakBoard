@@ -76,7 +76,8 @@ uint32_t ble_ots_object_refresh_current(ble_ots_object_chars_t * p_ots_object_ch
     buffer_t buffer;
 
     ble_gatts_value_t gatts_value;
-
+    
+    memset(&gatts_value, 0, sizeof(gatts_value));
 
     // name
     gatts_value.len = strlen((const char *)p_obj->name) + 1;
@@ -326,9 +327,10 @@ uint32_t ble_ots_object_set_name(ble_ots_object_chars_t * p_ots_object_chars,
     if (p_object == p_ots_object_chars->p_ots->p_current_object)
     {
         // update characteristic
-        uint32_t err_code;
-
+        uint32_t          err_code;
         ble_gatts_value_t gatts_value;
+        
+        memset(&gatts_value, 0, sizeof(gatts_value));
 
         gatts_value.len = strlen((const char *)p_object->name) + 1;
         gatts_value.p_value = p_object->name;
@@ -364,9 +366,11 @@ uint32_t ble_ots_object_set_type(ble_ots_object_chars_t * p_ots_object_chars,
     if (p_object == p_ots_object_chars->p_ots->p_current_object)
     {
         // update characteristic
-        uint32_t err_code;
-        uint8_t buffer[sizeof(p_new_type->param.type16)];
+        uint32_t          err_code;
+        uint8_t           buffer[sizeof(p_new_type->param.type16)];
         ble_gatts_value_t gatts_value;
+
+        memset(&gatts_value, 0, sizeof(gatts_value));
 
         if (p_object->type.len == sizeof(uint16_t))
         {
@@ -409,9 +413,11 @@ uint32_t ble_ots_object_set_current_size(ble_ots_object_chars_t * p_ots_object_c
     if (p_object == p_ots_object_chars->p_ots->p_current_object)
     {
         // update characteristic
-        uint32_t err_code;
-        uint8_t buffer[NRF_BLE_OTS_SIZE_CHAR_LEN];
-        ble_gatts_value_t gatts_value = {0};
+        uint32_t          err_code;
+        uint8_t           buffer[NRF_BLE_OTS_SIZE_CHAR_LEN];
+        ble_gatts_value_t gatts_value;
+
+        memset(&gatts_value, 0, sizeof(gatts_value));
 
         gatts_value.len = 0;
         gatts_value.len += uint32_encode(p_object->current_size, &buffer[gatts_value.len]);
@@ -485,9 +491,11 @@ uint32_t ble_ots_object_set_properties(ble_ots_object_chars_t * p_ots_object_cha
     if (p_object == p_ots_object_chars->p_ots->p_current_object)
     {
         // update characteristic
-        uint32_t err_code;
-        uint8_t buffer[sizeof(ble_ots_obj_properties_t)];
+        uint32_t          err_code;
+        uint8_t           buffer[sizeof(ble_ots_obj_properties_t)];
         ble_gatts_value_t gatts_value;
+        
+        memset(&gatts_value, 0, sizeof(gatts_value));
 
         gatts_value.len = uint32_encode(p_object->properties.raw, buffer);
         gatts_value.p_value = buffer;

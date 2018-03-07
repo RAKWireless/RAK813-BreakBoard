@@ -152,7 +152,7 @@ void ser_conn_ble_event_handle(ble_evt_t const * p_ble_evt, void * p_context)
      * encoding and sending every BLE event because sending a response on received packet has higher
      * priority than sending a BLE event. Solution for that is to put BLE events into application
      * scheduler queue to be processed at a later time. */
-    err_code = app_sched_event_put((ble_evt_t*)p_ble_evt, sizeof (ble_evt_hdr_t) + p_ble_evt->header.evt_len,
+    err_code = app_sched_event_put(p_ble_evt, p_ble_evt->header.evt_len,
                                    ser_conn_ble_event_encoder);
     APP_ERROR_CHECK(err_code);
     uint16_t free_space = app_sched_queue_space_get();

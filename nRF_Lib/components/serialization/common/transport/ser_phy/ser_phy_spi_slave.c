@@ -66,6 +66,12 @@
 
 static nrf_drv_spis_t m_spis = NRF_DRV_SPIS_INSTANCE(SER_PHY_SPI_SLAVE_INSTANCE);
 
+#ifdef NRF_SPIS0
+#define SPI_SLAVE_REG              NRF_SPIS0
+#else
+#define SPI_SLAVE_REG              NRF_SPIS1
+#endif
+
 //SPI raw peripheral device configuration data
 typedef struct
 {
@@ -449,7 +455,7 @@ static void spi_slave_ppi_init(void)
 {
     uint32_t rdy_task = nrf_drv_gpiote_out_task_addr_get(m_spi_slave_raw_config.pin_rdy);
     //Configure PPI channel  to clear /RDY line
-    NRF_PPI->CH[m_spi_slave_raw_config.ppi_rdy_ch].EEP = (uint32_t)(&NRF_SPIS1->EVENTS_END);
+    NRF_PPI->CH[m_spi_slave_raw_config.ppi_rdy_ch].EEP = (uint32_t)(&SPI_SLAVE_REG->EVENTS_END);
     NRF_PPI->CH[m_spi_slave_raw_config.ppi_rdy_ch].TEP = rdy_task;
 
     //this works only for channels 0..15 - but soft device is using 8-15 anyway

@@ -140,7 +140,7 @@ uint32_t nrf_crypto_ecdh_shared_secret_compute(nrf_crypto_curve_info_t    curve_
     CRYS_ECDH_TempData_t            temp_buffer;
     uint32_t                        shared_secret_size;
     uint32_t                        shared_secret_size_temp;
-    uint8_t                         shared_secret[NRF_CRYPTO_ECDH_SHARED_SECRET_MAX_SIZE];
+    __ALIGN(4) uint8_t              shared_secret[NRF_CRYPTO_ECDH_SHARED_SECRET_MAX_SIZE];
 
     // Check that the library has been initialized
     if (!nrf_crypto_is_initialized())

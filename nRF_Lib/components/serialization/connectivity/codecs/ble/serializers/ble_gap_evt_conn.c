@@ -168,12 +168,12 @@ uint32_t ble_gap_evt_disconnected_enc(ble_evt_t const * const p_event,
 
     // If disconnected and context is not yet destroyed, destroy it now
     uint32_t conn_index;
-	err_code = conn_ble_gap_sec_context_find(p_event->evt.gap_evt.conn_handle, &conn_index);
-	if (err_code == NRF_SUCCESS)
-	{
-		err_code = conn_ble_gap_sec_context_destroy(p_event->evt.gap_evt.conn_handle);
-		SER_ASSERT(err_code == NRF_SUCCESS, err_code);
-	}
+    err_code = conn_ble_gap_sec_context_find(p_event->evt.gap_evt.conn_handle, &conn_index);
+    if (err_code == NRF_SUCCESS)
+    {
+        err_code = conn_ble_gap_sec_context_destroy(p_event->evt.gap_evt.conn_handle);
+        SER_ASSERT(err_code == NRF_SUCCESS, err_code);
+    }
     err_code = NRF_SUCCESS;
 
     SER_EVT_ENC_END;

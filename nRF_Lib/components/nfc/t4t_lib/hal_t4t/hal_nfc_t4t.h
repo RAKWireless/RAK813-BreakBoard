@@ -71,10 +71,13 @@ typedef enum {
 
 /** @brief Parameter IDs for the set/get function. */
 typedef enum {
-    HAL_NFC_PARAM_ID_TESTING,         ///< Used for unit tests.
-    HAL_NFC_PARAM_FWI,                ///< Frame Wait Time parameter.
-    HAL_NFC_PARAM_SELRES,             ///< Parameter for setting the 'Protocol' bits for SEL_RES packet.
-    HAL_NFC_PARAM_DID,                ///< Parameter for DID field management.
+    HAL_NFC_PARAM_ID_TESTING,   ///< Used for unit tests.
+    HAL_NFC_PARAM_FWI,          ///< Frame Wait Time parameter.
+    HAL_NFC_PARAM_SELRES,       ///< Parameter for setting the 'Protocol' bits for SEL_RES packet.
+    HAL_NFC_PARAM_NFCID1,       /**< NFCID1 value, data can be 4, 7, or 10 bytes long (simple, double, or triple size).
+                                     To use default NFCID1 of specific length pass one byte containing requested length.
+                                     Default 7-byte NFCID1 will be used if this parameter was not set before nfc_t4t_setup(). */
+    HAL_NFC_PARAM_DID,          ///< Parameter for DID field management.
     HAL_NFC_PARAM_ID_UNKNOWN
 } hal_nfc_param_id_t;
 

@@ -96,7 +96,8 @@ extern "C" {
  * @hideinitializer
  */
 #define NRF_SDH_ANT_OBSERVER(_name, _prio, _handler, _context)                                      \
-STATIC_ASSERT(_prio < NRF_SDH_ANT_OBSERVER_PRIO_LEVELS);                                            \
+STATIC_ASSERT(NRF_SDH_ANT_ENABLED, "NRF_SDH_ANT_ENABLED not set!");                                 \
+STATIC_ASSERT(_prio < NRF_SDH_ANT_OBSERVER_PRIO_LEVELS, "Priority level unavailable.");             \
 NRF_SECTION_SET_ITEM_REGISTER(sdh_ant_observers, _prio, static nrf_sdh_ant_evt_observer_t _name) =  \
 {                                                                                                   \
     .handler   = _handler,                                                                          \
@@ -118,11 +119,12 @@ NRF_SECTION_SET_ITEM_REGISTER(sdh_ant_observers, _prio, static nrf_sdh_ant_evt_o
  * @param[in]   _cnt        Number of observers to register.
  * @hideinitializer
  */
-#define NRF_SDH_ANT_OBSERVERS(_name, _prio, _handler, _context, _cnt)                                     \
-STATIC_ASSERT(_prio < NRF_SDH_ANT_OBSERVER_PRIO_LEVELS);                                                  \
-NRF_SECTION_SET_ITEM_REGISTER(sdh_ant_observers, _prio, static nrf_sdh_ant_evt_observer_t _name[_cnt]) =  \
-{                                                                                                         \
-    MACRO_REPEAT_FOR(_cnt, HANDLER_SET, _handler, _context)                                               \
+#define NRF_SDH_ANT_OBSERVERS(_name, _prio, _handler, _context, _cnt)                                    \
+STATIC_ASSERT(NRF_SDH_ANT_ENABLED, "NRF_SDH_ANT_ENABLED not set!");                                      \
+STATIC_ASSERT(_prio < NRF_SDH_ANT_OBSERVER_PRIO_LEVELS, "Priority level unavailable.");                  \
+NRF_SECTION_SET_ITEM_REGISTER(sdh_ant_observers, _prio, static nrf_sdh_ant_evt_observer_t _name[_cnt]) = \
+{                                                                                                        \
+    MACRO_REPEAT_FOR(_cnt, HANDLER_SET, _handler, _context)                                              \
 }
 
 #if !(defined(DOXYGEN))
@@ -131,16 +133,17 @@ NRF_SECTION_SET_ITEM_REGISTER(sdh_ant_observers, _prio, static nrf_sdh_ant_evt_o
     .handler   = _handler,                                                                          \
     .p_context = _context[_idx],                                                                    \
 },
-#endif // DOXYGEN
-#else
+#endif
 
-// Swallow semicolons
-//lint -save -esym(528, *) -esym(529, *) : Symbol not referenced
+#else // __LINT__
+
+/* Swallow semicolons */
+/*lint -save -esym(528, *) -esym(529, *) : Symbol not referenced. */
 #define NRF_SDH_ANT_OBSERVER(A, B, C, D)     static int semicolon_swallow_##A
 #define NRF_SDH_ANT_OBSERVERS(A, B, C, D, E) static int semicolon_swallow_##A
-//lint -restore
+/*lint -restore */
 
-#endif // __LINT__
+#endif
 
 
 /**@brief   ANT stack event. */

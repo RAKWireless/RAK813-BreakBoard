@@ -52,13 +52,29 @@
 
 #include "nrf.h"
 #include "nrf_mbr.h"
-#include "nrf_dfu_svci.h"
+#include "app_util_platform.h"
 
 #ifdef SOFTDEVICE_PRESENT
 #include "nrf_sdm.h"
 #include "ble_gap.h"
 #endif
 
+#if defined(NRF_DFU_SVCI_ENABLED)
+    #include "nrf_dfu_svci.h"
+#else
+    // Dummy type for nrf_dfu_peer_data_t if DFU SVCI is not in use
+    typedef struct
+    {
+        uint32_t crc;
+    } nrf_dfu_peer_data_t;
+
+    // Dummy type for nrf_dfu_adv_name_t if DFU SVCI is not in use
+    typedef struct
+    {
+        uint32_t crc;
+    } nrf_dfu_adv_name_t;
+
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -234,7 +250,11 @@ typedef struct
 /**@brief DFU progress.
  *
  * Be aware of the difference between objects and firmware images. A firmware image consists of multiple objects, each of a maximum size @ref DATA_OBJECT_MAX_SIZE.
+ * 
+ * @note The union inside this struct is cleared when CREATE_OBJECT of command type is executed, and when there is a valid post-validation.
+ *       In DFU activation (after reset) the @ref sd_start_address will be used in case of a SD/SD+BL update.
  */
+ANON_UNIONS_ENABLE
 typedef struct
 {
     uint32_t command_size;              /**< The size of the current init command stored in the DFU settings. */
@@ -243,11 +263,22 @@ typedef struct
 
     uint32_t data_object_size;          /**< The size of the last object created. Note that this size is not the size of the whole firmware image.*/
 
-    uint32_t firmware_image_crc;        /**< CRC value of the current firmware (continuously calculated as data is received). */
-    uint32_t firmware_image_crc_last;   /**< The CRC of the last executed object. */
-    uint32_t firmware_image_offset;     /**< The offset of the current firmware image being transferred. Note that this offset is the offset in the entire firmware image and not only the current object. */
-    uint32_t firmware_image_offset_last;/**< The offset of the last executed object from the start of the firmware image. */
+    union
+    {
+        struct
+        {
+            uint32_t firmware_image_crc;        /**< CRC value of the current firmware (continuously calculated as data is received). */
+            uint32_t firmware_image_crc_last;   /**< The CRC of the last executed object. */
+            uint32_t firmware_image_offset;     /**< The offset of the current firmware image being transferred. Note that this offset is the offset in the entire firmware image and not only the current object. */
+            uint32_t firmware_image_offset_last;/**< The offset of the last executed object from the start of the firmware image. */
+        };
+        struct
+        {
+            uint32_t sd_start_address;          /**< Value indicating the start address of the SoftDevice source. Used for an SD/SD+BL update where the SD changes size or if the DFU process had a power loss when updating a SD with changed size. */
+        };
+    };
 } dfu_progress_t;
+ANON_UNIONS_DISABLE
 
 
 /**@brief DFU settings for application and bank data.

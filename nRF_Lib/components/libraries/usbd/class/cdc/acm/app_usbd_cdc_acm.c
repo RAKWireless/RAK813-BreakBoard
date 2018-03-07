@@ -195,17 +195,6 @@ static ret_code_t setup_req_std_in(app_usbd_class_inst_t const * p_inst,
 
             break;
         }
-        case APP_USBD_SETUP_STDREQ_GET_INTERFACE:
-        {
-
-            size_t tx_maxsize;
-            uint8_t * p_tx_buff = app_usbd_core_setup_transfer_buff_get(&tx_maxsize);
-
-            p_tx_buff[0] = 0;
-            return app_usbd_core_setup_rsp(&p_setup_ev->setup,
-                                           p_tx_buff,
-                                           sizeof(uint8_t));
-        }
         default:
             break;
     }
@@ -333,7 +322,7 @@ static ret_code_t cdc_acm_req_out_datastage(app_usbd_class_inst_t const * p_inst
                               p_cdc_acm_ctx->request.len);
     ret_code_t ret;
     CRITICAL_REGION_ENTER();
-    ret = app_usbd_core_setup_data_transfer(NRF_DRV_USBD_EPOUT0, &transfer);
+    ret = app_usbd_ep_transfer(NRF_DRV_USBD_EPOUT0, &transfer);
     if (ret == NRF_SUCCESS)
     {
         const app_usbd_core_setup_data_handler_desc_t desc = {
@@ -404,9 +393,9 @@ static ret_code_t setup_req_class_out(app_usbd_class_inst_t const * p_inst,
                 /*Abort DATA endpoints on port close */
                 nrf_drv_usbd_ep_t ep;
                 ep = data_ep_in_addr_get(p_inst);
-                usbd_drv_ep_abort(ep);
+                nrf_drv_usbd_ep_abort(ep);
                 ep = data_ep_out_addr_get(p_inst);
-                usbd_drv_ep_abort(ep);
+                nrf_drv_usbd_ep_abort(ep);
             }
 
             return NRF_SUCCESS;
@@ -600,7 +589,7 @@ ret_code_t app_usbd_cdc_acm_write(app_usbd_cdc_acm_t const * p_cdc_acm,
 
     nrf_drv_usbd_ep_t ep = data_ep_in_addr_get(p_inst);
     NRF_DRV_USBD_TRANSFER_IN(transfer, p_buf, length);
-    return app_usbd_core_ep_transfer(ep, &transfer);
+    return app_usbd_ep_transfer(ep, &transfer);
 }
 
 size_t app_usbd_cdc_acm_rx_size(app_usbd_cdc_acm_t const * p_cdc_acm)
@@ -636,7 +625,7 @@ ret_code_t app_usbd_cdc_acm_read(app_usbd_cdc_acm_t const * p_cdc_acm,
 
     nrf_drv_usbd_ep_t ep = data_ep_out_addr_get(p_inst);
     NRF_DRV_USBD_TRANSFER_OUT(transfer, p_buf, length);
-    return app_usbd_core_ep_transfer(ep, &transfer);
+    return app_usbd_ep_transfer(ep, &transfer);
 }
 
 static ret_code_t cdc_acm_serial_state_notify(app_usbd_cdc_acm_t const * p_cdc_acm)
@@ -649,7 +638,7 @@ static ret_code_t cdc_acm_serial_state_notify(app_usbd_cdc_acm_t const * p_cdc_a
     NRF_DRV_USBD_TRANSFER_OUT(transfer,
                               &p_cdc_acm_ctx->request.payload,
                               sizeof(app_usbd_cdc_acm_notify_t));
-    return app_usbd_core_ep_transfer(ep, &transfer);
+    return app_usbd_ep_transfer(ep, &transfer);
 }
 
 ret_code_t app_usbd_cdc_acm_serial_state_notify(app_usbd_cdc_acm_t const *      p_cdc_acm,

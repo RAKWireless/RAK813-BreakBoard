@@ -113,6 +113,15 @@ ANON_UNIONS_DISABLE
 typedef pm_peer_data_const_t pm_peer_data_flash_t;
 
 
+/**@brief Event handler for events from the @ref peer_manager module.
+ *
+ * @sa pm_register
+ *
+ * @param[in]  p_event  The event that has occurred.
+ */
+typedef void (*pm_evt_handler_internal_t)(pm_evt_t * p_event);
+
+
 /**@brief Macro for calculating the flash size of bonding data.
  *
  * @return The number of words that the data takes in flash.

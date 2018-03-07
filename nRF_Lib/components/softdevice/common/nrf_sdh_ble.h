@@ -83,7 +83,8 @@ extern "C" {
  * @hideinitializer
  */
 #define NRF_SDH_BLE_OBSERVER(_name, _prio, _handler, _context)                                      \
-STATIC_ASSERT(_prio < NRF_SDH_BLE_OBSERVER_PRIO_LEVELS);                                            \
+STATIC_ASSERT(NRF_SDH_BLE_ENABLED, "NRF_SDH_BLE_ENABLED not set!");                                 \
+STATIC_ASSERT(_prio < NRF_SDH_BLE_OBSERVER_PRIO_LEVELS, "Priority level unavailable.");             \
 NRF_SECTION_SET_ITEM_REGISTER(sdh_ble_observers, _prio, static nrf_sdh_ble_evt_observer_t _name) =  \
 {                                                                                                   \
     .handler   = _handler,                                                                          \
@@ -106,7 +107,8 @@ NRF_SECTION_SET_ITEM_REGISTER(sdh_ble_observers, _prio, static nrf_sdh_ble_evt_o
  * @hideinitializer
  */
 #define NRF_SDH_BLE_OBSERVERS(_name, _prio, _handler, _context, _cnt)                                    \
-STATIC_ASSERT(_prio < NRF_SDH_BLE_OBSERVER_PRIO_LEVELS);                                                 \
+STATIC_ASSERT(NRF_SDH_BLE_ENABLED, "NRF_SDH_BLE_ENABLED not set!");                                      \
+STATIC_ASSERT(_prio < NRF_SDH_BLE_OBSERVER_PRIO_LEVELS, "Priority level unavailable.");                  \
 NRF_SECTION_SET_ITEM_REGISTER(sdh_ble_observers, _prio, static nrf_sdh_ble_evt_observer_t _name[_cnt]) = \
 {                                                                                                        \
     MACRO_REPEAT_FOR(_cnt, HANDLER_SET, _handler, _context)                                              \
@@ -118,16 +120,17 @@ NRF_SECTION_SET_ITEM_REGISTER(sdh_ble_observers, _prio, static nrf_sdh_ble_evt_o
     .handler   = _handler,                                                                          \
     .p_context = _context[_idx],                                                                    \
 },
-#endif // DOXYGEN
-#else
+#endif
 
-// Swallow semicolons
-//lint -save -esym(528, *) -esym(529, *) : Symbol not referenced
+#else // __LINT__
+
+/* Swallow semicolons */
+/*lint -save -esym(528, *) -esym(529, *) : Symbol not referenced. */
 #define NRF_SDH_BLE_OBSERVER(A, B, C, D)     static int semicolon_swallow_##A
 #define NRF_SDH_BLE_OBSERVERS(A, B, C, D, E) static int semicolon_swallow_##A
-//lint -restore
+/*lint -restore */
 
-#endif // __LINT__
+#endif
 
 
 /**@brief   BLE stack event handler. */

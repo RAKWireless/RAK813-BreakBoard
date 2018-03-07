@@ -251,9 +251,9 @@ const char * ser_dbg_sd_call_str_get(uint8_t opcode)
 #ifdef ANT_STACK_SUPPORT_REQD
     // Check if opcode is within the range of the ANT Stack API SVC numbers
 #ifdef BLE_STACK_SUPPORT_REQD
-    else if (opcode >= STK_SVC_BASE_2 && opcode <= SVC_ANT_EXTENDED2)
+    else if (opcode >= STK_SVC_BASE_2)
 #else
-    if (opcode >= STK_SVC_BASE_2 && opcode <= SVC_ANT_EXTENDED2)
+    if (opcode >= STK_SVC_BASE_2)
 #endif // BLE_STACK_SUPPORT_REQD
     {
         p_str = string[0];
@@ -297,9 +297,9 @@ const char * ser_dbg_sd_evt_str_get(uint16_t opcode)
 #ifdef ANT_STACK_SUPPORT_REQD
     // Check if opcode is within the range of the ANT Stack API SVC numbers
 #ifdef BLE_STACK_SUPPORT_REQD
-    else if (opcode >= NO_EVENT && opcode <= EVENT_BLOCKED)
+    else if (opcode <= EVENT_BLOCKED)
 #else
-    if (opcode >= NO_EVENT && opcode <= EVENT_BLOCKED)
+    if (opcode <= EVENT_BLOCKED)
 #endif // BLE_STACK_SUPPORT_REQD
     {
         p_str = string[1];

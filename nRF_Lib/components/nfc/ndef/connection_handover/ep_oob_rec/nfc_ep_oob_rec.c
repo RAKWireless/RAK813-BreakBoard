@@ -37,6 +37,9 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  */
+#include "sdk_common.h"
+#if NRF_MODULE_ENABLED(NFC_EP_OOB_REC)
+
 #include "nfc_ep_oob_rec.h"
 #include "sdk_errors.h"
 #include "ble_gap.h"
@@ -192,3 +195,4 @@ ret_code_t nfc_ep_oob_payload_constructor(ble_advdata_t * p_ble_advdata,
     return err_code;
 }
 
+#endif // NRF_MODULE_ENABLED(NFC_EP_OOB_REC)

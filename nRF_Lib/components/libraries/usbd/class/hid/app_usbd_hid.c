@@ -127,41 +127,40 @@ static ret_code_t setup_req_std_in(app_usbd_class_inst_t const * p_inst,
                                    app_usbd_hid_ctx_t * p_hid_ctx,
                                    app_usbd_setup_evt_t const * p_setup_ev)
 {
-    /*Only Get Descriptor standard IN request is supported by HID class*/
-    if (p_setup_ev->setup.bmRequest != APP_USBD_SETUP_STDREQ_GET_DESCRIPTOR)
+    /* Only Get Descriptor standard IN request is supported by HID class */
+    if ((app_usbd_setup_req_rec(p_setup_ev->setup.bmRequestType) == APP_USBD_SETUP_REQREC_INTERFACE)
+        &&
+        (p_setup_ev->setup.bmRequest == APP_USBD_SETUP_STDREQ_GET_DESCRIPTOR))
     {
-        return NRF_ERROR_NOT_SUPPORTED;
-    }
+        size_t dsc_len = 0;
 
-
-    size_t dsc_len = 0;
-
-    /* Try to find descriptor in class internals*/
-    void const * p_dsc = app_usbd_class_descriptor_find(p_inst,
-                                                        p_setup_ev->setup.wValue.hb,
-                                                        p_setup_ev->setup.wValue.lb,
-                                                        &dsc_len);
-    if (p_dsc != NULL)
-    {
-        return app_usbd_core_setup_rsp(&(p_setup_ev->setup), p_dsc, dsc_len);
-    }
-
-
-    /* HID specific descriptors*/
-    switch (p_setup_ev->setup.wValue.hb)
-    {
-        case APP_USBD_HID_DESCRIPTOR_REPORT:
+        /* Try to find descriptor in class internals*/
+        void const * p_dsc = app_usbd_class_descriptor_find(
+            p_inst,
+            p_setup_ev->setup.wValue.hb,
+            p_setup_ev->setup.wValue.lb,
+            &dsc_len);
+        if (p_dsc != NULL)
         {
-            return app_usbd_core_setup_rsp(&p_setup_ev->setup,
-                                           p_hinst->p_report_dsc,
-                                           p_hinst->report_dsc_size);
+            return app_usbd_core_setup_rsp(&(p_setup_ev->setup), p_dsc, dsc_len);
         }
-        case APP_USBD_HID_DESCRIPTOR_PHYSICAL:
-            /*Not supported*/
-            break;
-        default:
-            /*Not supported*/
-            break;
+        /* HID specific descriptors*/
+        switch (p_setup_ev->setup.wValue.hb)
+        {
+            case APP_USBD_HID_DESCRIPTOR_REPORT:
+            {
+                return app_usbd_core_setup_rsp(
+                    &p_setup_ev->setup,
+                    p_hinst->p_report_dsc,
+                    p_hinst->report_dsc_size);
+            }
+            case APP_USBD_HID_DESCRIPTOR_PHYSICAL:
+                /*Not supported*/
+                break;
+            default:
+                /*Not supported*/
+                break;
+        }
     }
 
     return NRF_ERROR_NOT_SUPPORTED;

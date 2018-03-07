@@ -60,7 +60,7 @@
  * @ingroup app_common
  *
  * @brief Module for drawing graphical objects like lines, circles, and rectangles.
-	Provides support for different fonts.
+    Provides support for different fonts.
  */
 
 /**

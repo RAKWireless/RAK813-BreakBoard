@@ -147,8 +147,8 @@ static inline void write_data(uint8_t c)
 
 static void set_addr_window(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1)
 {
-    ASSERT(x0 < x1);
-    ASSERT(y0 < y1);
+    ASSERT(x0 <= x1);
+    ASSERT(y0 <= y1);
 
     write_command(ST7735_CASET);
     write_data(0x00);                       // For a 128x160 display, it is always 0.

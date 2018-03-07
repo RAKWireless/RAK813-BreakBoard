@@ -102,8 +102,8 @@ typedef struct
     uint16_t                   conn_handle; /**< Handle of the connection for which this event has occurred. */
     union
     {
-        ble_gatt_db_char_t       gatts_handles;  /**< Handles that the GATT service occupies in the peer device. Will be filled if the event type is @ref NRF_BLE_GATTS_C_EVT_DISCOVERY_COMPLETE.*/
-        ble_gattc_handle_range_t handle_range;   /**< The affected attribute handle range where the service has changed. Will be provided if the event type is @ref NRF_BLE_GATTS_C_EVT_SRV_CHANGED.*/
+        ble_gatt_db_srv_t        service;      /**< Handles that the GATT service occupies in the peer device. Will be filled if the event type is @ref NRF_BLE_GATTS_C_EVT_DISCOVERY_COMPLETE.*/
+        ble_gattc_handle_range_t handle_range; /**< The affected attribute handle range where the service has changed. Will be provided if the event type is @ref NRF_BLE_GATTS_C_EVT_SRV_CHANGED.*/
     } params;
 } nrf_ble_gatts_c_evt_t;
 

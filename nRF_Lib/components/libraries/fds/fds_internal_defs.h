@@ -82,7 +82,7 @@ extern "C" {
 // The size of a physical page, in 4-byte words.
 #if     defined(NRF51)
     #define FDS_PHY_PAGE_SIZE   (256)
- #elif (defined(NRF52) || defined(NRF52840_XXAA))
+ #elif defined(NRF52_SERIES)
     #define FDS_PHY_PAGE_SIZE   (1024)
 #endif
 
@@ -108,15 +108,6 @@ extern "C" {
 #endif
 
 
-// FDS internal status flags.
-typedef enum
-{
-    FDS_FLAG_INITIALIZING   = (1 << 0),  // The module is initializing.
-    FDS_FLAG_INITIALIZED    = (1 << 1),  // The module is initialized.
-    FDS_FLAG_PROCESSING     = (1 << 2),  // The queue is being processed.
-} fds_flags_t;
-
-
 // Page types.
 typedef enum
 {
@@ -127,13 +118,21 @@ typedef enum
 } fds_page_type_t;
 
 
+typedef enum
+{
+    FDS_HEADER_VALID,   // Valid header.
+    FDS_HEADER_DIRTY,   // Header is incomplete, or record has been deleted.
+    FDS_HEADER_CORRUPT  // Header contains corrupt information, not related to CRC.
+} fds_header_status_t;
+
+
 typedef struct
 {
     fds_page_type_t         page_type;      // The page type.
     uint32_t        const * p_addr;         // The address of the page.
     uint16_t                write_offset;   // The page write offset, in 4-byte words.
-    uint16_t                words_reserved; // The amount of words reserved by fds_write_reserve().
-    uint16_t                records_open;   // The number of records opened using fds_open().
+    uint16_t                words_reserved; // The amount of words reserved.
+    uint32_t volatile       records_open;   // The number of open records.
     bool                    can_gc;         // Indicates that there are some records that have been deleted.
 } fds_page_t;
 
@@ -203,7 +202,7 @@ typedef struct
     {
         struct
         {
-            fds_init_step_t step;               // The current step the operation is at.
+            fds_init_step_t   step;               // The current step the operation is at.
         } init;
         struct
         {
@@ -230,14 +229,6 @@ typedef struct
 #elif defined(__GNUC__)
     // anonymous unions are enabled by default
 #endif
-
-
-typedef struct
-{
-    fds_op_t op[FDS_OP_QUEUE_SIZE];    // Queued flash operations.
-    uint32_t rp;                       // The index of the command being executed.
-    uint32_t count;                    // Number of elements in the queue.
-} fds_op_queue_t;
 
 
 enum
@@ -327,7 +318,6 @@ typedef struct
     #define CRITICAL_SECTION_EXIT()
 
 #endif
-
 
 
 #ifdef __cplusplus

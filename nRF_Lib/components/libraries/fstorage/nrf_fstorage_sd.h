@@ -52,8 +52,6 @@
 #define NRF_FSTORAGE_SD_H__
 
 #include "nrf_fstorage.h"
-#include <stdint.h>
-#include "app_util_platform.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,17 +65,6 @@ extern "C" {
  *          The structure is defined in @c nrf_fstorage_sd.c.
  */
 extern nrf_fstorage_api_t nrf_fstorage_sd;
-
-
-/**@brief   Function for handling system events from the SoftDevice.
- *
- * @details This function dispatches system events to the nrf_fstorage_sd implementation.
- *          If any of the libraries used by the application rely on fstorage, the application
- *          should dispatch system events to fstorage using this function.
- *
- * @param[in]   sys_evt     System event from the SoftDevice.
- */
-//void nrf_fstorage_on_sys_evt(uint32_t sys_evt, void * p_context);
 
 
 #ifdef __cplusplus

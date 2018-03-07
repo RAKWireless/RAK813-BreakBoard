@@ -40,11 +40,11 @@
 #ifndef APP_USBD_MSC_SCSI_H__
 #define APP_USBD_MSC_SCSI_H__
 
+#include "app_util.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "app_util.h"
 
 /**
  * @defgroup app_usbd_msc_scsi USB MSC SCSI data structures

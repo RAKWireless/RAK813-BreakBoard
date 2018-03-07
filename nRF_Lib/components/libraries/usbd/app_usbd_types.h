@@ -41,15 +41,15 @@
 #ifndef APP_USBD_TYPES_H__
 #define APP_USBD_TYPES_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdint.h>
 
 #include "sdk_errors.h"
 #include "nrf_drv_usbd.h"
 #include "app_usbd_request.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @defgroup app_usbd_types USB Device high level library variable types definition
@@ -109,6 +109,9 @@ typedef enum
                                                                 *   This removing cannot be stopped. */
     APP_USBD_EVT_STARTED,                                      /**< USBD library has just been started and functional - event passed to all instances, before USBD interrupts have been enabled */
     APP_USBD_EVT_STOPPED,                                      /**< USBD library has just been stopped and is not functional - event passed to all instances, after USBD interrupts have been disabled*/
+
+    APP_USBD_EVT_STATE_CHANGED,                                /**< Informs all the classes that base state has been changed.
+                                                                *   This event is processed before setup stage that caused the state change finishes (before acknowledging it). */
 
     APP_USBD_EVT_FIRST_INTERNAL = 0x80,                        /**< First internal event, used by the APP library internally. */
 

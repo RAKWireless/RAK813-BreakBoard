@@ -100,15 +100,11 @@ NRF_LOG_MODULE_REGISTER();
 #define NFC_LIB_VERSION             0x03u                                       /**< Internal: current NFC lib. version  */
 
 #define T2T_INTERNAL_BYTES_NR       10u                                         /**< Number of internal bytes defined by Type 2 Tag Operation Technical Specification */
-#define T2T_INTERNAL_BYTE_SN0_SHIFT 0u                                          /**< Internal Byte SN0, NRF_FICR->NFC.TAGHEADER0.MFGID which is Manufacturer ID */
-#define T2T_INTERNAL_BYTE_SN1_SHIFT 8u                                          /**< Internal Byte SN1, NRF_FICR->NFC.TAGHEADER0.UID0 */
-#define T2T_INTERNAL_BYTE_SN2_SHIFT 16u                                         /**< Internal Byte SN2, NRF_FICR->NFC.TAGHEADER0.UID1 */
-#define T2T_INTERNAL_BYTE_SN3_SHIFT 0u                                          /**< Internal Byte SN3, NRF_FICR->NFC.TAGHEADER1.UID3 */
-#define T2T_INTERNAL_BYTE_SN4_SHIFT 8u                                          /**< Internal Byte SN4, NRF_FICR->NFC.TAGHEADER1.UID4 */
-#define T2T_INTERNAL_BYTE_SN5_SHIFT 16u                                         /**< Internal Byte SN5, NRF_FICR->NFC.TAGHEADER1.UID5 */
-#define T2T_INTERNAL_BYTE_SN6_SHIFT 24u                                         /**< Internal Byte SN6, NRF_FICR->NFC.TAGHEADER1.UID6 */
 #define CASCADE_TAG_BYTE            0x88u                                       /**< Constant defined by ISO/EIC 14443-3 */
 
+#define NFCID1_3RD_LAST_BYTE2_SHIFT 16u                                         /**< Shift value for NFC ID byte 2 */
+#define NFCID1_3RD_LAST_BYTE1_SHIFT 8u                                          /**< Shift value for NFC ID byte 1 */
+#define NFCID1_3RD_LAST_BYTE0_SHIFT 0u                                          /**< Shift value for NFC ID byte 0 */
 #define NFCID1_2ND_LAST_BYTE2_SHIFT 16u                                         /**< Shift value for NFC ID byte 2 */
 #define NFCID1_2ND_LAST_BYTE1_SHIFT 8u                                          /**< Shift value for NFC ID byte 1 */
 #define NFCID1_2ND_LAST_BYTE0_SHIFT 0u                                          /**< Shift value for NFC ID byte 0 */
@@ -116,6 +112,12 @@ NRF_LOG_MODULE_REGISTER();
 #define NFCID1_LAST_BYTE2_SHIFT     16u                                         /**< Shift value for NFC ID byte 2 */
 #define NFCID1_LAST_BYTE1_SHIFT     8u                                          /**< Shift value for NFC ID byte 1 */
 #define NFCID1_LAST_BYTE0_SHIFT     0u                                          /**< Shift value for NFC ID byte 0 */
+
+#define NFCID1_SINGLE_SIZE          4u                                          /**< Length of single size NFCID1 */
+#define NFCID1_DOUBLE_SIZE          7u                                          /**< Length of double size NFCID1 */
+#define NFCID1_TRIPLE_SIZE          10u                                         /**< Length of triple size NFCID1 */
+#define NFCID1_DEFAULT_LENGHT       NFCID1_DOUBLE_SIZE                          /**< Length of NFCID1 if user does not provide one */
+#define NFCID1_MAX_LENGHT           NFCID1_TRIPLE_SIZE                          /**< Maximum length of NFCID1 */
 
 #define NFC_RX_BUFFER_SIZE          16u                                         /**< NFC Rx data buffer size */
 #define T2T_READ_CMD                0x30u                                       /**< Type 2 Tag Read command identifier */
@@ -148,14 +150,19 @@ typedef enum
 static inline void nrf_nfct_event_clear(volatile uint32_t * p_event);
 static inline void nrf_nfct_clock_event_handler(nrf_drv_clock_evt_type_t event);
 static inline void nrf_nfct_field_event_handler(volatile nfct_field_sense_state_t field_state);
+static void hal_nfc_nfcid1_default_bytes(void);
+static void hal_nfc_nfcid1_registers_setup(void);
+static void hal_nfc_internal_bytes_setup(void);
 
 /* Static data */
-static hal_nfc_callback_t           m_nfc_lib_callback = (hal_nfc_callback_t) NULL;               /**< Callback to nfc_lib layer */
-static void *                       m_nfc_lib_context;                                            /**< Callback execution context */
-static volatile uint8_t             m_nfc_rx_buffer[NFC_RX_BUFFER_SIZE]   = {0};                  /**< Buffer for NFC Rx data */
-static volatile bool                m_slp_req_received                    = false;                /**< Flag indicating that SLP_REQ Command was received */
-static volatile bool                m_field_on                            = false;                /**< Flag indicating that NFC Tag field is present */
-static nrf_drv_clock_handler_item_t m_clock_handler_item;                                         /**< Clock event handler item structure */
+static hal_nfc_callback_t           m_nfc_lib_callback = (hal_nfc_callback_t) NULL;    /**< Callback to nfc_lib layer */
+static void *                       m_nfc_lib_context;                                 /**< Callback execution context */
+static volatile uint8_t             m_nfc_rx_buffer[NFC_RX_BUFFER_SIZE]   = {0};       /**< Buffer for NFC Rx data */
+static volatile bool                m_slp_req_received                    = false;     /**< Flag indicating that SLP_REQ Command was received */
+static volatile bool                m_field_on                            = false;     /**< Flag indicating that NFC Tag field is present */
+static nrf_drv_clock_handler_item_t m_clock_handler_item;                              /**< Clock event handler item structure */
+static uint8_t                      m_nfcid1_length                       = 0;         /**< Length of NFCID1 provided by user or 0 if not initialized yet */
+static uint8_t                      m_nfcid1_data[NFCID1_MAX_LENGHT]      = {0};       /**< Content of NFCID1 */
 
 #ifndef HAL_NFC_ENGINEERING_BC_FTPAN_WORKAROUND
     static volatile uint32_t        m_nfc_fieldpresent_mask               = NFC_FIELD_OFF_MASK;   /**< Mask used for NFC Field polling in NFCT_FIELDPRESENT register */
@@ -207,14 +214,11 @@ void TIMER4_IRQHandler(void)
  * @brief Common part of setup used for NFCT initialization and reinitialization.
  */
 #ifdef HAL_NFC_ENGINEERING_BC_FTPAN_WORKAROUND
-static void hal_nfc_common_hw_setup(uint8_t * const nfc_internal)
+static void hal_nfc_common_hw_setup()
 #else
-static inline void hal_nfc_common_hw_setup(uint8_t * const nfc_internal)
+static inline void hal_nfc_common_hw_setup()
 #endif // HAL_NFC_ENGINEERING_BC_FTPAN_WORKAROUND
 {
-    uint32_t nfc_tag_header0 = NRF_FICR->NFC.TAGHEADER0;
-    uint32_t nfc_tag_header1 = NRF_FICR->NFC.TAGHEADER1;
-    
 #ifdef HAL_NFC_NRF52840_ENGINEERING_A_WORKAROUND
 /* Begin: Bugfix for FTPAN-98 */
     *(volatile uint32_t *) 0x4000568C = 0x00038148;
@@ -237,52 +241,119 @@ static inline void hal_nfc_common_hw_setup(uint8_t * const nfc_internal)
     NRF_NFCT->INTENSET = (NFCT_INTENSET_ERROR_Enabled    << NFCT_INTENSET_ERROR_Pos) |
                          (NFCT_INTENSET_SELECTED_Enabled << NFCT_INTENSET_SELECTED_Pos);
 
-    /* According to ISO/IEC 14443-3 */
-    nfc_internal[0] = (uint8_t) (LSB_32(nfc_tag_header0 >> T2T_INTERNAL_BYTE_SN0_SHIFT));      //SN0
-    nfc_internal[1] = (uint8_t) (LSB_32(nfc_tag_header0 >> T2T_INTERNAL_BYTE_SN1_SHIFT));      //SN1
-    nfc_internal[2] = (uint8_t) (LSB_32(nfc_tag_header0 >> T2T_INTERNAL_BYTE_SN2_SHIFT));      //SN2
-    nfc_internal[3] = (uint8_t) ((CASCADE_TAG_BYTE) ^ nfc_internal[0] ^ 
-                                  nfc_internal[1]   ^ nfc_internal[2]);                        //BCC0 = CASCADE_TAG_BYTE ^ SN0 ^ SN1 ^ SN2
-    nfc_internal[4] = (uint8_t) (LSB_32(nfc_tag_header1 >> T2T_INTERNAL_BYTE_SN3_SHIFT));      //SN3
-    nfc_internal[5] = (uint8_t) (LSB_32(nfc_tag_header1 >> T2T_INTERNAL_BYTE_SN4_SHIFT));      //SN4
-    nfc_internal[6] = (uint8_t) (LSB_32(nfc_tag_header1 >> T2T_INTERNAL_BYTE_SN5_SHIFT));      //SN5
-    nfc_internal[7] = (uint8_t) (LSB_32(nfc_tag_header1 >> T2T_INTERNAL_BYTE_SN6_SHIFT));      //SN6
-    nfc_internal[8] = (uint8_t) (nfc_internal[4] ^ nfc_internal[5] ^
-                                 nfc_internal[6] ^ nfc_internal[7]);                           //BCC1 = SN3 ^ SN4 ^ SN5 ^ SN6
-    nfc_internal[9] = (uint8_t) (NFC_LIB_VERSION);                                             //For internal use
+    hal_nfc_nfcid1_registers_setup();
+}
 
+/** @brief Setup NRF_NFCT->NFCID1 and NRF_NFCT->SENSRES registers based on m_nfcid1_data and m_nfcid1_length variables.
+ */
+static void hal_nfc_nfcid1_registers_setup(void)
+{
+    uint32_t sens_res_size;         // Value that will be written to NRF_NFCT->SENSRES
+    uint8_t* p_nfcid_remaining_data;  // Points to the first byte of m_nfcid1_data remaining to write to NRF_NFCT->NFCID1 registers
 
-    /* MSB of NFCID1_2ND_LAST register is not used - always 0 */
-    NRF_NFCT->NFCID1_2ND_LAST = ((uint32_t) nfc_internal[0] << NFCID1_2ND_LAST_BYTE2_SHIFT) |
-                                ((uint32_t) nfc_internal[1] << NFCID1_2ND_LAST_BYTE1_SHIFT) |
-                                ((uint32_t) nfc_internal[2] << NFCID1_2ND_LAST_BYTE0_SHIFT);
+    p_nfcid_remaining_data = m_nfcid1_data;
 
-    NRF_NFCT->NFCID1_LAST = ((uint32_t) nfc_internal[4] << NFCID1_LAST_BYTE3_SHIFT) |
-                            ((uint32_t) nfc_internal[5] << NFCID1_LAST_BYTE2_SHIFT) |
-                            ((uint32_t) nfc_internal[6] << NFCID1_LAST_BYTE1_SHIFT) |
-                            ((uint32_t) nfc_internal[7] << NFCID1_LAST_BYTE0_SHIFT);
+    if (m_nfcid1_length == NFCID1_SINGLE_SIZE)
+    {
+        sens_res_size = NFCT_SENSRES_NFCIDSIZE_NFCID1Single;
+    }
+    else
+    {
+        if (m_nfcid1_length == NFCID1_DOUBLE_SIZE)
+        {
+            sens_res_size = NFCT_SENSRES_NFCIDSIZE_NFCID1Double;
+        }
+        else // then m_nfcid1_length == NFCID1_TRIPLE_SIZE
+        {
+            /* MSB of NFCID1_3RD_LAST register is not used - always 0 */
+            NRF_NFCT->NFCID1_3RD_LAST =
+                ((uint32_t) p_nfcid_remaining_data[0] << NFCID1_3RD_LAST_BYTE2_SHIFT) |
+                ((uint32_t) p_nfcid_remaining_data[1] << NFCID1_3RD_LAST_BYTE1_SHIFT) |
+                ((uint32_t) p_nfcid_remaining_data[2] << NFCID1_3RD_LAST_BYTE0_SHIFT);
+            p_nfcid_remaining_data += 3;
+            sens_res_size           = NFCT_SENSRES_NFCIDSIZE_NFCID1Triple;
+        }
+        /* MSB of NFCID1_2ND_LAST register is not used - always 0 */
+        NRF_NFCT->NFCID1_2ND_LAST =
+            ((uint32_t) p_nfcid_remaining_data[0] << NFCID1_2ND_LAST_BYTE2_SHIFT) |
+            ((uint32_t) p_nfcid_remaining_data[1] << NFCID1_2ND_LAST_BYTE1_SHIFT) |
+            ((uint32_t) p_nfcid_remaining_data[2] << NFCID1_2ND_LAST_BYTE0_SHIFT);
+        p_nfcid_remaining_data += 3;
+    }
+
+    NRF_NFCT->NFCID1_LAST =
+        ((uint32_t) p_nfcid_remaining_data[0] << NFCID1_LAST_BYTE3_SHIFT) |
+        ((uint32_t) p_nfcid_remaining_data[1] << NFCID1_LAST_BYTE2_SHIFT) |
+        ((uint32_t) p_nfcid_remaining_data[2] << NFCID1_LAST_BYTE1_SHIFT) |
+        ((uint32_t) p_nfcid_remaining_data[3] << NFCID1_LAST_BYTE0_SHIFT);
 
     /* Begin: Bugfix for FTPAN-25 (IC-9929) */
     /* Workaround for wrong SENSRES values require using SDD00001, but here SDD00100 is used
        because it's required to operate with Windows Phone */
     NRF_NFCT->SENSRES =
-            (NFCT_SENSRES_NFCIDSIZE_NFCID1Double << NFCT_SENSRES_NFCIDSIZE_Pos) |
+            (sens_res_size << NFCT_SENSRES_NFCIDSIZE_Pos) |
             (NFCT_SENSRES_BITFRAMESDD_SDD00100   << NFCT_SENSRES_BITFRAMESDD_Pos);
     /* End:   Bugfix for FTPAN-25 (IC-9929)*/
 }
 
+/** @brief Call nfc_t2t_internal_set() with data generated based on m_nfcid1_data and m_nfcid1_length variables.
+ */
+static void hal_nfc_internal_bytes_setup(void)
+{
+    if (m_nfcid1_length == NFCID1_TRIPLE_SIZE)
+    {
+        (void) nfc_t2t_internal_set(m_nfcid1_data, T2T_INTERNAL_BYTES_NR);
+    }
+    else
+    {
+        uint8_t  nfc_internal[T2T_INTERNAL_BYTES_NR];
+
+        if (m_nfcid1_length == NFCID1_DOUBLE_SIZE)
+        {
+                                                                  // CASCADE TAG send over the air, but not included in internal data
+            nfc_internal[0] = m_nfcid1_data[0];                   // UID0 = Manufacturer ID
+            nfc_internal[1] = m_nfcid1_data[1];                   // UID1
+            nfc_internal[2] = m_nfcid1_data[2];                   // UID2
+            nfc_internal[3] = (uint8_t) CASCADE_TAG_BYTE ^ nfc_internal[0] ^
+                              nfc_internal[1] ^ nfc_internal[2];  // BCC0 = XOR over the 4 previous bytes
+            nfc_internal[4] = m_nfcid1_data[3];                   // UID3
+            nfc_internal[5] = m_nfcid1_data[4];                   // UID4
+            nfc_internal[6] = m_nfcid1_data[5];                   // UID5
+            nfc_internal[7] = m_nfcid1_data[6];                   // UID6
+            nfc_internal[8] = nfc_internal[4] ^ nfc_internal[5] ^
+                              nfc_internal[6] ^ nfc_internal[7];  // BCC1 = XOR over the 4 previous bytes
+            nfc_internal[9] = NFC_LIB_VERSION;                    // For internal use
+        }
+        else // then m_nfcid1_length == NFCID1_SINGLE_SIZE
+        {
+            nfc_internal[0] = m_nfcid1_data[0];                   // UID0 = Manufacturer ID
+            nfc_internal[1] = m_nfcid1_data[1];                   // UID1
+            nfc_internal[2] = m_nfcid1_data[2];                   // UID2
+            nfc_internal[3] = m_nfcid1_data[3];                   // UID3
+            nfc_internal[4] = nfc_internal[0] ^ nfc_internal[1] ^
+                              nfc_internal[2] ^ nfc_internal[3];  // BCC0 = XOR over the 4 previous bytes
+            memset(&nfc_internal[5], 0xFF, 4);                    // 4-byte padding
+            nfc_internal[9] = NFC_LIB_VERSION;                    // For internal use
+        }
+
+        (void) nfc_t2t_internal_set(nfc_internal, T2T_INTERNAL_BYTES_NR);
+    }
+}
 
 ret_code_t hal_nfc_setup(hal_nfc_callback_t callback, void * p_context)
 {
-    uint8_t  nfc_internal[T2T_INTERNAL_BYTES_NR];
-    
     m_nfc_lib_callback = callback;
     m_nfc_lib_context  = p_context;
-    
-    hal_nfc_common_hw_setup(nfc_internal);
 
-    (void) nfc_t2t_internal_set((uint8_t *) nfc_internal, sizeof(nfc_internal));
+    if (m_nfcid1_length == 0)
+    {
+        m_nfcid1_length = NFCID1_DEFAULT_LENGHT;
+        hal_nfc_nfcid1_default_bytes();
+    }
     
+    hal_nfc_common_hw_setup();
+    hal_nfc_internal_bytes_setup();
+
     /* Initialize SDK Clock module for handling high precission clock requests */
     m_clock_handler_item.event_handler = nrf_nfct_clock_event_handler;
     m_clock_handler_item.p_next        = NULL;
@@ -427,22 +498,82 @@ static inline void nrf_nfct_field_event_handler(volatile nfct_field_sense_state_
 }
 #endif // HAL_NFC_ENGINEERING_BC_FTPAN_WORKAROUND
 
-/* This function is used by nfc_lib for unit testing only */
+
+/** @brief Writes default values to m_nfcid1_data based on NRF_FICR->NFC registers.
+ */
+static void hal_nfc_nfcid1_default_bytes(void)
+{
+    uint32_t nfc_tag_header0 = NRF_FICR->NFC.TAGHEADER0;
+    uint32_t nfc_tag_header1 = NRF_FICR->NFC.TAGHEADER1;
+    uint32_t nfc_tag_header2 = NRF_FICR->NFC.TAGHEADER2;
+
+    m_nfcid1_data[0] = (uint8_t) LSB_32(nfc_tag_header0 >> 0);
+    m_nfcid1_data[1] = (uint8_t) LSB_32(nfc_tag_header0 >> 8);
+    m_nfcid1_data[2] = (uint8_t) LSB_32(nfc_tag_header0 >> 16);
+    m_nfcid1_data[3] = (uint8_t) LSB_32(nfc_tag_header1 >> 0);
+    m_nfcid1_data[4] = (uint8_t) LSB_32(nfc_tag_header1 >> 8);
+    m_nfcid1_data[5] = (uint8_t) LSB_32(nfc_tag_header1 >> 16);
+    m_nfcid1_data[6] = (uint8_t) LSB_32(nfc_tag_header1 >> 24);
+    m_nfcid1_data[7] = (uint8_t) LSB_32(nfc_tag_header2 >> 0);
+    m_nfcid1_data[8] = (uint8_t) LSB_32(nfc_tag_header2 >> 8);
+    m_nfcid1_data[9] = (uint8_t) LSB_32(nfc_tag_header2 >> 16);
+}
+
+
+
 ret_code_t hal_nfc_parameter_set(hal_nfc_param_id_t id, void * p_data, size_t data_length)
 {
-    (void)id;
-    (void)p_data;
-    (void)data_length;
+    if (id == HAL_NFC_PARAM_ID_NFCID1)
+    {
+        if (data_length == 1)
+        {
+            uint8_t id_length = *((uint8_t *) p_data);
+            if (id_length == NFCID1_SINGLE_SIZE || id_length == NFCID1_DOUBLE_SIZE ||
+                id_length == NFCID1_TRIPLE_SIZE)
+            {
+                m_nfcid1_length = id_length;
+                hal_nfc_nfcid1_default_bytes();
+            }
+            else
+            {
+                return NRF_ERROR_INVALID_LENGTH;
+            }
+        }
+        else if (data_length == NFCID1_SINGLE_SIZE || data_length == NFCID1_DOUBLE_SIZE ||
+            data_length == NFCID1_TRIPLE_SIZE)
+        {
+            m_nfcid1_length = (uint8_t) data_length;
+            memcpy(m_nfcid1_data, p_data, data_length);
+        }
+        else
+        {
+            return NRF_ERROR_INVALID_LENGTH;
+        }
+        hal_nfc_nfcid1_registers_setup();
+        hal_nfc_internal_bytes_setup();
+    }
 
     return NRF_SUCCESS;
 } 
 
-/* This function is used by nfc_lib for unit testing only */
 ret_code_t hal_nfc_parameter_get(hal_nfc_param_id_t id, void * p_data, size_t * p_max_data_length)
 {
-    (void)id;
-    (void)p_data;
-    (void)p_max_data_length;
+    if (id == HAL_NFC_PARAM_ID_NFCID1)
+    {
+        if (m_nfcid1_length == 0)
+        {
+            m_nfcid1_length = NFCID1_DEFAULT_LENGHT;
+            hal_nfc_nfcid1_default_bytes();
+        }
+
+        if (*p_max_data_length < (size_t) m_nfcid1_length)
+        {
+            return NRF_ERROR_DATA_SIZE;
+        }
+
+        *p_max_data_length = (size_t) m_nfcid1_length;
+        memcpy(p_data, m_nfcid1_data, m_nfcid1_length);
+    }
 
     return NRF_SUCCESS;
 }
@@ -727,9 +858,7 @@ static inline void nrf_nfct_field_event_handler(volatile nfct_field_sense_state_
  */
 static inline void hal_nfc_re_setup(void)
 {
-    uint8_t  nfc_internal[T2T_INTERNAL_BYTES_NR];
-
-    hal_nfc_common_hw_setup(nfc_internal);
+    hal_nfc_common_hw_setup();
 
     NRF_LOG_INFO("Reinitialize");
 }

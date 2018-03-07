@@ -956,10 +956,10 @@ ret_code_t nrf_drv_twi_xfer(nrf_drv_twi_t           const * p_instance,
                  p_xfer_desc->primary_length, p_xfer_desc->secondary_length);
     NRF_LOG_DEBUG("Primary buffer data:");
     NRF_LOG_HEXDUMP_DEBUG((uint8_t *)p_xfer_desc->p_primary_buf,
-                          p_xfer_desc->primary_length * sizeof(p_xfer_desc->p_primary_buf));
+                          p_xfer_desc->primary_length * sizeof(p_xfer_desc->p_primary_buf[0]));
     NRF_LOG_DEBUG("Secondary buffer data:");
     NRF_LOG_HEXDUMP_DEBUG((uint8_t *)p_xfer_desc->p_secondary_buf,
-                          p_xfer_desc->secondary_length * sizeof(p_xfer_desc->p_secondary_buf));
+                          p_xfer_desc->secondary_length * sizeof(p_xfer_desc->p_secondary_buf[0]));
 
     CODE_FOR_TWIM
     (

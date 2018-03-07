@@ -71,7 +71,7 @@ uint32_t nrf_crypto_ecdh_shared_secret_compute(nrf_crypto_curve_info_t    curve_
     uint32_t            private_key_size;
     uint32_t            shared_secret_size;
     const struct        uECC_Curve_t * p_curve;
-    uint8_t             shared_secret[NRF_CRYPTO_ECDH_SHARED_SECRET_MAX_SIZE];
+    __ALIGN(4) uint8_t  shared_secret[NRF_CRYPTO_ECDH_SHARED_SECRET_MAX_SIZE];
 
     // This function does not require initialized nrf_crypto for this backend.
 

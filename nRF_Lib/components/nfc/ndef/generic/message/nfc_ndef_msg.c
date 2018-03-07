@@ -37,8 +37,8 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  */
-#include "sdk_config.h"
-#if NFC_NDEF_MSG_ENABLED
+#include "sdk_common.h"
+#if NRF_MODULE_ENABLED(NFC_NDEF_MSG)
 
 #include "app_util.h"
 #include "nfc_ndef_msg.h"
@@ -180,4 +180,4 @@ ret_code_t nfc_ndef_msg_record_add(nfc_ndef_msg_desc_t * const    p_msg,
     return NRF_SUCCESS;
 }
 
-#endif // NFC_NDEF_MSG_ENABLED
+#endif // NRF_MODULE_ENABLED(NFC_NDEF_MSG)

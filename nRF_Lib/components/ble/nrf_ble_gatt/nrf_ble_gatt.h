@@ -93,7 +93,9 @@ typedef struct
     union
     {
         uint16_t att_mtu_effective;     //!< Effective ATT_MTU.
+#if !defined (S112)
         uint8_t  data_length;           //!< Data length value.
+#endif // !defined (S112)
     } params;
 } nrf_ble_gatt_evt_t;
 
@@ -113,8 +115,10 @@ typedef struct
     uint16_t att_mtu_effective;             //!< Effective ATT_MTU size (in bytes).
     bool     att_mtu_exchange_pending;      //!< Indicates that an ATT_MTU exchange request is pending (the call to @ref sd_ble_gattc_exchange_mtu_request returned @ref NRF_ERROR_BUSY).
     bool     att_mtu_exchange_requested;    //!< Indicates that an ATT_MTU exchange request was made.
+#if !defined (S112)
     uint8_t  data_length_desired;           //!< Desired data length (in bytes).
     uint8_t  data_length_effective;         //!< Requested data length (in bytes).
+#endif // !defined (S112)
 } nrf_ble_gatt_link_t;
 
 
@@ -178,10 +182,11 @@ ret_code_t nrf_ble_gatt_att_mtu_central_set(nrf_ble_gatt_t * p_gatt, uint16_t de
  *          out (for example, if a default ATT_MTU size is used), the data length
  *          is not changed.
  */
+#if !defined (S112)
 ret_code_t nrf_ble_gatt_data_length_set(nrf_ble_gatt_t * p_gatt,
                                         uint16_t         conn_handle,
                                         uint8_t          data_length);
-
+#endif // !defined (S112)
 
 /**@brief   Function for retrieving the data length of a connection.
  *
@@ -200,10 +205,11 @@ ret_code_t nrf_ble_gatt_data_length_set(nrf_ble_gatt_t * p_gatt,
  * @retval NRF_ERROR_NULL           If @p p_gatt or @p p_data_length is NULL.
  * @retval NRF_ERROR_INVALID_PARAM  If @p conn_handle is larger than @ref NRF_BLE_GATT_LINK_COUNT.
  */
+#if !defined (S112)
 ret_code_t nrf_ble_gatt_data_length_get(nrf_ble_gatt_t const * p_gatt,
                                         uint16_t               conn_handle,
                                         uint8_t              * p_data_length);
-
+#endif // !defined (S112)
 
 /**@brief   Function for handling BLE stack events.
  *

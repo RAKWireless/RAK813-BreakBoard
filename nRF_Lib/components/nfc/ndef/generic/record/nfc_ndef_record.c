@@ -37,6 +37,10 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  */
+#include "sdk_config.h"
+#include "nordic_common.h"
+#if NRF_MODULE_ENABLED(NFC_NDEF_RECORD)
+
 #include <string.h>
 #include "nfc_ndef_record.h"
 #include "app_util.h"
@@ -184,4 +188,4 @@ ret_code_t nfc_ndef_bin_payload_memcopy(nfc_ndef_bin_payload_desc_t * p_payload_
     return NRF_SUCCESS;
 }
 
-
+#endif // NRF_MODULE_ENABLED(NFC_NDEF_RECORD)

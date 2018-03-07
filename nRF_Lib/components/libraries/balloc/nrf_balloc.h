@@ -55,7 +55,7 @@ extern "C" {
 #include "sdk_errors.h"
 #include "sdk_config.h"
 #include "app_util_platform.h"
-
+#include "app_util.h"
 /**@defgroup NRF_BALLOC_DEBUG Macros for preparing debug flags for block allocator module.
  * @{ */
 #define NRF_BALLOC_DEBUG_HEAD_GUARD_WORDS_SET(words)        (((words) & 0xFF) << 0)
@@ -176,16 +176,16 @@ typedef struct
  */
 #define NRF_BALLOC_DBG_DEF(_name, _element_size, _pool_size, _debug_flags)                      \
     STATIC_ASSERT((_pool_size) <= UINT8_MAX);                                                   \
-    static uint8_t              _name##_nrf_balloc_pool_stack[(_pool_size)];                    \
-    static uint32_t             _name##_nrf_balloc_pool_mem                                     \
+    static uint8_t              CONCAT_2(_name, _nrf_balloc_pool_stack)[(_pool_size)];          \
+    static uint32_t             CONCAT_2(_name,_nrf_balloc_pool_mem)                            \
         [NRF_BALLOC_BLOCK_SIZE(_element_size, _debug_flags) * (_pool_size) / sizeof(uint32_t)]; \
-    static nrf_balloc_cb_t      _name##_nrf_balloc_cb;                                          \
+    static nrf_balloc_cb_t      CONCAT_2(_name,_nrf_balloc_cb);                                 \
     static const nrf_balloc_t   _name =                                                         \
         {                                                                                       \
-            .p_cb           = &_name##_nrf_balloc_cb,                                           \
-            .p_stack_base   = _name##_nrf_balloc_pool_stack,                                    \
-            .p_stack_limit  = _name##_nrf_balloc_pool_stack + (_pool_size),                     \
-            .p_memory_begin = _name##_nrf_balloc_pool_mem,                                      \
+            .p_cb           = &CONCAT_2(_name,_nrf_balloc_cb),                                  \
+            .p_stack_base   = CONCAT_2(_name,_nrf_balloc_pool_stack),                           \
+            .p_stack_limit  = CONCAT_2(_name,_nrf_balloc_pool_stack) + (_pool_size),            \
+            .p_memory_begin = CONCAT_2(_name,_nrf_balloc_pool_mem),                             \
             .block_size     = NRF_BALLOC_BLOCK_SIZE(_element_size, _debug_flags),               \
                                                                                                 \
             __NRF_BALLOC_ASSIGN_POOL_NAME(_name)                                                \
@@ -209,8 +209,8 @@ typedef struct
  * @param[in]   _name    Name of the allocator.
  */
 #define NRF_BALLOC_INTERFACE_DEC(_type, _name)    \
-    _type * _name##_alloc(void);                  \
-    void    _name##_free(_type * p_element)
+    _type * CONCAT_2(_name,_alloc)(void);                  \
+    void    CONCAT_2(_name,_free)(_type * p_element)
 
 /**@brief Define a custom block allocator interface.
  *
@@ -220,7 +220,7 @@ typedef struct
  * @param[in]   _p_pool  Pool from which data will be allocated.
  */
 #define NRF_BALLOC_INTERFACE_CUSTOM_DEF(_attr, _type, _name, _p_pool)           \
-    _attr _type * _name##_alloc(void)                                           \
+    _attr _type * CONCAT_2(_name,_alloc)(void)                                  \
     {                                                                           \
         GCC_PRAGMA("GCC diagnostic push")                                       \
         GCC_PRAGMA("GCC diagnostic ignored \"-Waddress\"")                      \
@@ -231,7 +231,7 @@ typedef struct
         return (_type *)(nrf_balloc_alloc(_p_pool));                            \
     }                                                                           \
                                                                                 \
-    _attr void _name##_free(_type * p_element)                                  \
+    _attr void CONCAT_2(_name,_free)(_type * p_element)                         \
     {                                                                           \
         GCC_PRAGMA("GCC diagnostic push")                                       \
         GCC_PRAGMA("GCC diagnostic ignored \"-Waddress\"")                      \

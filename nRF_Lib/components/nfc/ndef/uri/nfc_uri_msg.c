@@ -37,6 +37,9 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  */
+#include "sdk_common.h"
+#if NRF_MODULE_ENABLED(NFC_NDEF_URI_MSG)
+
 #include <string.h>
 #include "nfc_uri_msg.h"
 #include "sdk_macros.h"
@@ -65,3 +68,5 @@ ret_code_t nfc_uri_msg_encode( nfc_uri_id_t          uri_id_code,
 
     return err_code;
 }
+
+#endif // NRF_MODULE_ENABLED(NFC_NDEF_URI_MSG)

@@ -68,11 +68,12 @@ NRF_SECTION_SET_DEF(sdh_ble_observers, nrf_sdh_ble_evt_observer_t, NRF_SDH_BLE_O
 #if defined(__CC_ARM)
     extern uint32_t  Image$$RW_IRAM1$$Base;
     uint32_t const * const m_ram_start = &Image$$RW_IRAM1$$Base;
-
 #elif defined(__ICCARM__)
     extern uint32_t  __ICFEDIT_region_RAM_start__;
     uint32_t const * const m_ram_start = &__ICFEDIT_region_RAM_start__;
-
+#elif defined(__SES_ARM)
+    extern uint32_t  __app_ram_start__;
+    uint32_t const * const m_ram_start = &__app_ram_start__;
 #elif defined(__GNUC__)
     extern uint32_t  __data_start__;
     uint32_t const * const m_ram_start = &__data_start__;
@@ -106,6 +107,10 @@ ret_code_t nrf_sdh_ble_default_cfg_set(uint8_t conn_cfg_tag, uint32_t * p_ram_st
         return ret_code;
     }
 
+#ifdef S112
+    STATIC_ASSERT(NRF_SDH_BLE_CENTRAL_LINK_COUNT == 0, "When using s112, NRF_SDH_BLE_CENTRAL_LINK_COUNT must be 0.");
+#endif
+
     // Overwrite some of the default settings of the BLE stack.
     // If any of the calls to sd_ble_cfg_set() fail, log the error but carry on so that
     // wrong RAM settings can be caught by nrf_sdh_ble_enable() and a meaningful error
@@ -124,22 +129,22 @@ ret_code_t nrf_sdh_ble_default_cfg_set(uint8_t conn_cfg_tag, uint32_t * p_ram_st
     {
         NRF_LOG_ERROR("sd_ble_cfg_set() returned %s when attempting to set BLE_CONN_CFG_GAP.",
                       nrf_strerror_get(ret_code));
-
     }
 
     // Configure the connection roles.
     memset(&ble_cfg, 0, sizeof(ble_cfg));
     ble_cfg.gap_cfg.role_count_cfg.periph_role_count  = NRF_SDH_BLE_PERIPHERAL_LINK_COUNT;
+#ifndef S112
     ble_cfg.gap_cfg.role_count_cfg.central_role_count = NRF_SDH_BLE_CENTRAL_LINK_COUNT;
     ble_cfg.gap_cfg.role_count_cfg.central_sec_count  = NRF_SDH_BLE_CENTRAL_LINK_COUNT ?
                                                         BLE_GAP_ROLE_COUNT_CENTRAL_SEC_DEFAULT : 0;
+#endif
 
     ret_code = sd_ble_cfg_set(BLE_GAP_CFG_ROLE_COUNT, &ble_cfg, *p_ram_start);
     if (ret_code != NRF_SUCCESS)
     {
         NRF_LOG_ERROR("sd_ble_cfg_set() returned %s when attempting to set BLE_GAP_CFG_ROLE_COUNT.",
                       nrf_strerror_get(ret_code));
-
     }
 
     // Configure the maximum ATT MTU.
@@ -155,8 +160,7 @@ ret_code_t nrf_sdh_ble_default_cfg_set(uint8_t conn_cfg_tag, uint32_t * p_ram_st
                       nrf_strerror_get(ret_code));
     }
 #endif
-
-#endif  // NRF_SDH_BLE_TOTAL_LINK_COUNT
+#endif  // NRF_SDH_BLE_TOTAL_LINK_COUNT != 0
 
     // Configure number of custom UUIDS.
     memset(&ble_cfg, 0, sizeof(ble_cfg));
@@ -171,11 +175,7 @@ ret_code_t nrf_sdh_ble_default_cfg_set(uint8_t conn_cfg_tag, uint32_t * p_ram_st
 
     // Configure the GATTS attribute table.
     memset(&ble_cfg, 0x00, sizeof(ble_cfg));
-    ble_gatts_cfg_attr_tab_size_t table =
-    {
-        .attr_tab_size = NRF_SDH_BLE_GATTS_ATTR_TAB_SIZE
-    };
-    ble_cfg.gatts_cfg.attr_tab_size = table;
+    ble_cfg.gatts_cfg.attr_tab_size.attr_tab_size = NRF_SDH_BLE_GATTS_ATTR_TAB_SIZE;
 
     ret_code = sd_ble_cfg_set(BLE_GATTS_CFG_ATTR_TAB_SIZE, &ble_cfg, *p_ram_start);
     if (ret_code != NRF_SUCCESS)
@@ -186,11 +186,7 @@ ret_code_t nrf_sdh_ble_default_cfg_set(uint8_t conn_cfg_tag, uint32_t * p_ram_st
 
     // Configure Service Changed characteristic.
     memset(&ble_cfg, 0x00, sizeof(ble_cfg));
-    ble_gatts_cfg_service_changed_t sc =
-    {
-        .service_changed = NRF_SDH_BLE_SERVICE_CHANGED
-    };
-    ble_cfg.gatts_cfg.service_changed = sc;
+    ble_cfg.gatts_cfg.service_changed.service_changed = NRF_SDH_BLE_SERVICE_CHANGED;
 
     ret_code = sd_ble_cfg_set(BLE_GATTS_CFG_SERVICE_CHANGED, &ble_cfg, *p_ram_start);
     if (ret_code != NRF_SUCCESS)
@@ -221,16 +217,18 @@ static uint32_t ram_end_address_get(void)
 
 ret_code_t nrf_sdh_ble_enable(uint32_t * const p_app_ram_start)
 {
-    uint32_t const app_ram_start = *p_app_ram_start;
+    // Start of RAM, obtained from linker symbol.
+    uint32_t const app_ram_start_link = *p_app_ram_start;
 
-    NRF_LOG_DEBUG("RAM starts at 0x%x", *p_app_ram_start);
+    NRF_LOG_DEBUG("RAM starts at 0x%x", app_ram_start_link);
 
     ret_code_t ret_code = sd_ble_enable(p_app_ram_start);
-
-    if (*p_app_ram_start != app_ram_start)
+    if (*p_app_ram_start != app_ram_start_link)
     {
-        NRF_LOG_WARNING("RAM start should be adjusted to 0x%x.", *p_app_ram_start);
-        NRF_LOG_WARNING("RAM size should be adjusted to 0x%x.",
+        NRF_LOG_WARNING("RAM starts at 0x%x, can be adjusted to 0x%x.",
+                        app_ram_start_link, *p_app_ram_start);
+
+        NRF_LOG_WARNING("RAM size can be adjusted to 0x%x.",
                         ram_end_address_get() - (*p_app_ram_start));
     }
 

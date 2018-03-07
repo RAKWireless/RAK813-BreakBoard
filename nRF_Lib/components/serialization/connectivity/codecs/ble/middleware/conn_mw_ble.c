@@ -344,12 +344,12 @@ uint32_t conn_mw_ble_user_mem_reply(uint8_t const * const p_rx_buf,
 
     if (p_mem_block != NULL)
     {
-    	//Use the context if p_mem_block was not null
-		err_code = conn_ble_user_mem_context_create(&user_mem_tab_index);
-		SER_ASSERT(err_code == NRF_SUCCESS, err_code);
-		m_conn_user_mem_table[user_mem_tab_index].conn_handle = conn_handle;
-		m_conn_user_mem_table[user_mem_tab_index].mem_block.len = p_mem_block->len;
-		p_mem_block = &(m_conn_user_mem_table[user_mem_tab_index].mem_block);
+        //Use the context if p_mem_block was not null
+        err_code = conn_ble_user_mem_context_create(&user_mem_tab_index);
+        SER_ASSERT(err_code == NRF_SUCCESS, err_code);
+        m_conn_user_mem_table[user_mem_tab_index].conn_handle = conn_handle;
+        m_conn_user_mem_table[user_mem_tab_index].mem_block.len = p_mem_block->len;
+        p_mem_block = &(m_conn_user_mem_table[user_mem_tab_index].mem_block);
     }
 
     sd_err_code = sd_ble_user_mem_reply(conn_handle, p_mem_block);

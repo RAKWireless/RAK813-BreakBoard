@@ -6,7 +6,7 @@
  *           nrf52810 from Nordic Semiconductor.
  *
  * @version  V1
- * @date     6. June 2017
+ * @date     3. October 2017
  *
  * @note     Generated with SVDConv V2.81d 
  *           from CMSIS SVD File 'nrf52810.svd' Version 1,

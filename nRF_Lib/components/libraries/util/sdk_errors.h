@@ -92,6 +92,7 @@ extern "C" {
 #define NRF_ERROR_MEMORY_MANAGER_ERR_BASE   (0x8100)
 #define NRF_ERROR_PERIPH_DRIVERS_ERR_BASE   (0x8200)
 #define NRF_ERROR_GAZELLE_ERR_BASE          (0x8300)
+#define NRF_ERROR_BLE_IPSP_ERR_BASE         (0x8400)
 /** @} */
 
 
@@ -124,10 +125,23 @@ extern "C" {
  * @defgroup drv_specific_errors Error / status codes specific to drivers.
  * @{
  */
-#define NRF_ERROR_DRV_TWI_ERR_OVERRUN              (NRF_ERROR_PERIPH_DRIVERS_ERR_BASE + 0x0000)
-#define NRF_ERROR_DRV_TWI_ERR_ANACK                (NRF_ERROR_PERIPH_DRIVERS_ERR_BASE + 0x0001)
-#define NRF_ERROR_DRV_TWI_ERR_DNACK                (NRF_ERROR_PERIPH_DRIVERS_ERR_BASE + 0x0002)
+#define NRF_ERROR_DRV_TWI_ERR_OVERRUN        (NRF_ERROR_PERIPH_DRIVERS_ERR_BASE + 0x0000)
+#define NRF_ERROR_DRV_TWI_ERR_ANACK          (NRF_ERROR_PERIPH_DRIVERS_ERR_BASE + 0x0001)
+#define NRF_ERROR_DRV_TWI_ERR_DNACK          (NRF_ERROR_PERIPH_DRIVERS_ERR_BASE + 0x0002)
 /** @} */
+
+
+/**
+ * @defgroup ble_ipsp_errors IPSP codes
+ * @brief Error and status codes specific to IPSP.
+ * @{
+ */
+#define NRF_ERROR_BLE_IPSP_RX_PKT_TRUNCATED       (NRF_ERROR_BLE_IPSP_ERR_BASE + 0x0000)
+#define NRF_ERROR_BLE_IPSP_CHANNEL_ALREADY_EXISTS (NRF_ERROR_BLE_IPSP_ERR_BASE + 0x0001)
+#define NRF_ERROR_BLE_IPSP_LINK_DISCONNECTED      (NRF_ERROR_BLE_IPSP_ERR_BASE + 0x0002)
+#define NRF_ERROR_BLE_IPSP_PEER_REJECTED          (NRF_ERROR_BLE_IPSP_ERR_BASE + 0x0003)
+/* @} */
+
 
 /**
  * @brief API Result.

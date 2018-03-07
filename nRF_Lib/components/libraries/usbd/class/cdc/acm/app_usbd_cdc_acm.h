@@ -65,9 +65,9 @@ extern "C" {
  *
  * @details References:
  * - "Universal Serial Bus Class Definitions for Communications Devices"
- *  	Revision 1.2, November 3, 2010
+ *      Revision 1.2, November 3, 2010
  * - "Universal Serial Bus Communications Class Subclass Specification for PSTN Devices"
- *  	Revision 1.2, February 9, 2007
+ *      Revision 1.2, February 9, 2007
  *
  * @{
  */

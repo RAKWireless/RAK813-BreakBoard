@@ -61,15 +61,19 @@
 #define ADVERTISING_LED_PIN_NO              BSP_LED_0                                               /**< Is on when device is advertising. */
 #define CONNECTED_LED_PIN_NO                BSP_LED_1                                               /**< Is on when device has connected. */
 
-#define DEVICE_NAME                         "DfuTarg"                                               /**< Name of device. Will be included in the advertising data. */
+#define DEVICE_NAME                         "DfuTarg"                                               /**< Name of device included in the advertising data. Must be shorter than or equal to 20 bytes. */
 #define MANUFACTURER_NAME                   "NordicSemiconductor"                                   /**< Manufacturer. Will be passed to Device Information Service. */
+
+#define APP_BLE_CONN_CFG_TAG                1                                                       /**< A tag identifying the SoftDevice BLE configuration. */
 
 #define MIN_CONN_INTERVAL                   (uint16_t)(MSEC_TO_UNITS(7.5, UNIT_1_25_MS))            /**< Minimum acceptable connection interval. */
 #define MAX_CONN_INTERVAL                   (uint16_t)(MSEC_TO_UNITS(30, UNIT_1_25_MS))             /**< Maximum acceptable connection interval. */
 #define SLAVE_LATENCY                       0                                                       /**< Slave latency. */
 #define CONN_SUP_TIMEOUT                    (4 * 100)                                               /**< Connection supervisory timeout (4 seconds). */
 
-#define MAX_ADV_DATA_LENGTH                 20                                                      /**< Maximum length of advertising data. */
+#define MAX_ADV_NAME_LENGTH                 20                                                      /**< Maximum length of advertising name. */
+
+#define APP_ADV_DATA_HEADER_SIZE            (9)                                                     /**< Size of encoded advertisement data header (not including device name). */
 
 #define APP_ADV_INTERVAL                    MSEC_TO_UNITS(25, UNIT_0_625_MS)                        /**< The advertising interval (25 ms.). */
 #define APP_ADV_TIMEOUT_IN_SECONDS          BLE_GAP_ADV_TIMEOUT_GENERAL_UNLIMITED                   /**< The advertising timeout in units of seconds. This is set to @ref BLE_GAP_ADV_TIMEOUT_GENERAL_UNLIMITED so that the advertisement is done as long as there there is a call to @ref dfu_transport_close function.*/
@@ -83,7 +87,11 @@
 #define SEC_PARAM_MIN_KEY_SIZE              7                                                       /**< Minimum encryption key size. */
 #define SEC_PARAM_MAX_KEY_SIZE              16                                                      /**< Maximum encryption key size. */
 
-#define MAX_DFU_PKT_LEN                     (20)                                                    /**< Maximum length (in bytes) of the DFU Packet characteristic. */
+#define OPCODE_LEN                          1                                                       /**< Length of opcode inside Heart Rate Measurement packet. */
+#define HANDLE_LEN                          2                                                       /**< Length of handle inside Heart Rate Measurement packet. */
+#define MAX_DFU_PKT_LEN                     NRF_SDH_BLE_GATT_MAX_MTU_SIZE - OPCODE_LEN - HANDLE_LEN /**< Maximum length (in bytes) of the DFU Packet characteristic. */
+STATIC_ASSERT(MAX_DFU_PKT_LEN <= FLASH_BUFFER_LENGTH);                                              /**< Assert to prevent buffer overflow. Every write to the DFU Packet control point is buffered and written to flash. */
+
 #define PKT_CREATE_PARAM_LEN                (6)                                                     /**< Length (in bytes) of the parameters for Create Object request. */
 #define PKT_SET_PRN_PARAM_LEN               (3)                                                     /**< Length (in bytes) of the parameters for Set Packet Receipt Notification request. */
 #define PKT_READ_OBJECT_INFO_PARAM_LEN      (2)                                                     /**< Length (in bytes) of the parameters for Read Object Info request. */
@@ -127,11 +135,9 @@ static nrf_dfu_adv_name_t          m_adv_name;
 static uint32_t advertising_init(uint8_t adv_flags)
 {
     uint32_t err_code;
-    uint16_t len_advdata                = 9;
-    uint16_t max_device_name_length     = MAX_ADV_DATA_LENGTH - len_advdata;
-    uint16_t actual_device_name_length  = max_device_name_length;
-
-    uint8_t p_encoded_advdata[MAX_ADV_DATA_LENGTH];
+    uint16_t len_advdata                = APP_ADV_DATA_HEADER_SIZE;
+    uint16_t actual_device_name_length  = BLE_GAP_ADV_MAX_SIZE - APP_ADV_DATA_HEADER_SIZE;
+    uint8_t p_encoded_advdata[BLE_GAP_ADV_MAX_SIZE];
 
     // Encode flags.
     p_encoded_advdata[0] = 0x2;
@@ -150,21 +156,11 @@ static uint32_t advertising_init(uint8_t adv_flags)
     {
         return err_code;
     }
-
+    
     // Set GAP device in advertising data.
-    if (actual_device_name_length <= max_device_name_length)
-    {
-        p_encoded_advdata[7] = actual_device_name_length + 1; // (actual_length + ADV_AD_TYPE_FIELD_SIZE(1))
-        p_encoded_advdata[8] = BLE_GAP_AD_TYPE_COMPLETE_LOCAL_NAME;
-        len_advdata += actual_device_name_length;
-    }
-    else
-    {
-        // Must use a shorter advertising name than the actual name of the device.
-        p_encoded_advdata[7] = max_device_name_length + 1; // (length + ADV_AD_TYPE_FIELD_SIZE(1))
-        p_encoded_advdata[8] = BLE_GAP_AD_TYPE_SHORT_LOCAL_NAME;
-        len_advdata = MAX_ADV_DATA_LENGTH;
-    }
+    p_encoded_advdata[7] = actual_device_name_length + 1; // (actual_length + ADV_AD_TYPE_FIELD_SIZE(1))
+    p_encoded_advdata[8] = BLE_GAP_AD_TYPE_COMPLETE_LOCAL_NAME;
+    len_advdata += actual_device_name_length;
 
     return sd_ble_gap_adv_data_set(p_encoded_advdata, len_advdata, NULL, 0);
 }
@@ -221,7 +217,7 @@ static uint32_t advertising_start(void)
     VERIFY_SUCCESS(err_code);
 
     (void) sd_ble_gap_adv_stop();
-    err_code = sd_ble_gap_adv_start(&adv_params, BLE_CONN_CFG_TAG_DEFAULT);
+    err_code = sd_ble_gap_adv_start(&adv_params, APP_BLE_CONN_CFG_TAG);
     VERIFY_SUCCESS(err_code);
 
     nrf_gpio_pin_clear(ADVERTISING_LED_PIN_NO);
@@ -737,7 +733,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
             APP_ERROR_CHECK(err_code);
         } break;
 
-#if defined(S132)
+#ifndef S140
         case BLE_GAP_EVT_PHY_UPDATE_REQUEST:
         {
             NRF_LOG_DEBUG("PHY update request.");
@@ -749,6 +745,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
             err_code = sd_ble_gap_phy_update(p_ble_evt->evt.gap_evt.conn_handle, &phys);
             APP_ERROR_CHECK(err_code);
         } break;
+
 #endif
 
         case BLE_GATTS_EVT_TIMEOUT:
@@ -832,7 +829,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
         case BLE_GATTS_EVT_EXCHANGE_MTU_REQUEST:
         {
             err_code = sd_ble_gatts_exchange_mtu_reply(p_ble_evt->evt.gatts_evt.conn_handle,
-                                                       BLE_GATT_ATT_MTU_DEFAULT);
+                                                       NRF_SDH_BLE_GATT_MAX_MTU_SIZE);
             APP_ERROR_CHECK(err_code);
         } break; // BLE_GATTS_EVT_EXCHANGE_MTU_REQUEST
 
@@ -991,6 +988,12 @@ static uint32_t ble_stack_init(bool init_softdevice)
     ble_cfg.gap_cfg.role_count_cfg.central_role_count = 0;
     ble_cfg.gap_cfg.role_count_cfg.central_sec_count  = 0;
     err_code = sd_ble_cfg_set(BLE_GAP_CFG_ROLE_COUNT, &ble_cfg, ram_start);
+
+    memset(&ble_cfg, 0x00, sizeof(ble_cfg));
+    ble_cfg.conn_cfg.conn_cfg_tag                 = APP_BLE_CONN_CFG_TAG;
+    ble_cfg.conn_cfg.params.gatt_conn_cfg.att_mtu = NRF_SDH_BLE_GATT_MAX_MTU_SIZE;
+
+    err_code = sd_ble_cfg_set(BLE_CONN_CFG_GATT, &ble_cfg, ram_start);
 
     if (err_code != NRF_SUCCESS)
     {

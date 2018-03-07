@@ -41,10 +41,6 @@
 #ifndef APP_USBD_CLASS_BASE_H__
 #define APP_USBD_CLASS_BASE_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdint.h>
 #include <stddef.h>
 
@@ -52,6 +48,10 @@ extern "C" {
 #include "nrf_drv_usbd.h"
 #include "nrf_assert.h"
 #include "app_util.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @defgroup app_usbd_class_base USBD Class Base module
@@ -107,10 +107,12 @@ typedef struct {
      * @param[in,out] p_inst  Instance of the class
      * @param[in]     p_event Event to process
      *
+     * @return Standard error code
+     *
      * @note If given event is not supported by class, return @ref NRF_ERROR_NOT_SUPPORTED
      */
-    ret_code_t   (* event_handler)(app_usbd_class_inst_t const * const p_inst,
-                                   app_usbd_complex_evt_t const * const p_event);
+    ret_code_t (* event_handler)(app_usbd_class_inst_t const * const p_inst,
+                                 app_usbd_complex_evt_t const * const p_event);
 
     /**
      * @brief Instance get descriptors
@@ -123,6 +125,79 @@ typedef struct {
      */
     const void * (* get_descriptors)(app_usbd_class_inst_t const * const p_inst,
                                      size_t * p_size);
+
+    /**
+     * @brief Select interface
+     *
+     * Function called when class interface has to be selected.
+     *
+     * This function would be called for every interface when:
+     * - SET_INTERFACE command is processed by the default handler
+     * - SET_CONFIG(1) command is processed by the default handler
+     *
+     * @note Remember to disable all the endpoints that are not used
+     *       in the selected configuration.
+     * @note If this function pointer is NULL default procedure would
+     *       just enable all the interface endpoints and selecting
+     *       alternate configurations other than 0 would generate error.
+     * @note Calling the function with alternate setting 0 has to always succeed.
+     *
+     * @param[in,out] p_inst    Instance of the class
+     * @param[in]     iface_idx Index of the interface inside class structure
+     * @param[in]     alternate Alternate setting that should be selected
+     *
+     * @return Function has to return @ref NRF_SUCCESS when it has successfully proceed
+     *         interface selection.
+     *         If it returns @ref NRF_ERROR_NOT_SUPPORTED, default function would be used
+     *         to proceed the request - just like there would be NULL pointer in this field.
+     *         Any other kind of error would make library to STALL the request.
+     */
+    ret_code_t (* iface_select)(app_usbd_class_inst_t const * const p_inst,
+                                uint8_t iface_idx,
+                                uint8_t alternate);
+
+    /**
+     * @brief Deselect interface
+     *
+     * Function called when the class interface has to be deselected.
+     *
+     * This function would be called for every interface when:
+     * - Library start internal event is processed by the default handler
+     * - RESET event is processed by the default handler
+     * - SET_ADDRESS is processed by the default handler
+     * - SET_CONFIG(0) is processed by the default handler
+     *
+     * @note Just after this function is called all the interface
+     *       endpoints would be disabled.
+     *       This function does not has to take care about it.
+     * @note If this function pointer is NULL default procedure would
+     *       just disable all the interface endpoints.
+     *
+     * @param[in,out] p_inst    Instance of the class
+     * @param[in]     iface_idx Index of the interface inside class structure
+     */
+    void (* iface_deselect)(app_usbd_class_inst_t const * const p_inst, uint8_t iface_idx);
+
+    /**
+     * @brief Get current interface
+     *
+     * Function called when class interface has to return its alternate settings
+     * in reaction on GET_INTERFACE command.
+     * It should be defined in a pair with @ref app_usbd_class_methods_t::iface_select.
+     *
+     * @param[in]  p_inst     Instance of the class
+     * @param[in]  iface_idx  Index of the interface inside class structure
+     *
+     * @return Current alternate setting of the selected interface.
+     *
+     * @note For the classes that support this function, when an interface that has not alternate
+     *       configurations has been selected this function has to return 0 - default alternate setting.
+     *
+     * @note If this function pointer it NULL default procedure would return alternate interface
+     *       value 0.
+     */
+    uint8_t (* iface_selection_get)(app_usbd_class_inst_t const * const p_inst, uint8_t iface_idx);
+
 } app_usbd_class_methods_t;
 
 /**
@@ -684,7 +759,7 @@ static inline app_usbd_class_data_t * app_usbd_class_data_access(
  * The tricky part is @c class_config_part.
  * The configuration data here has to be placed inside brackets.
  * Then any type of values can be used depending on the type used in @ref APP_USBD_CLASS_TYPEDEF.
- * If instance does not have any specyfic data, use just empty bracket here.
+ * If instance does not has any specyfic data, use just empty bracket here.
  * @code
  * APP_USBD_CLASS_TYPEDEF(
  *      some_base_class,
@@ -827,7 +902,7 @@ static inline app_usbd_class_data_t * app_usbd_class_data_access(
  * but then we would totally lost type safety.
  *
  * A little more safe is to use pointer to base member of class instance.
- * This would generate an error when used on any variable that have no base member
+ * This would generate an error when used on any variable that has no base member
  * and would generate also error if this base member is wrong type.
  */
 #define APP_USBD_CLASS_BASE_INSTANCE(p_inst) (&((p_inst)->base))

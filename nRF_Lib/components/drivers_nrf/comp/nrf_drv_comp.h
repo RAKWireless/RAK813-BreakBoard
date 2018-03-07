@@ -110,7 +110,9 @@ typedef struct
     nrf_comp_th_t            threshold;          /**< Structure holding THDOWN and THUP values needed by the COMP_TH register. */
     nrf_comp_sp_mode_t       speed_mode;         /**< Speed and power mode. */
     nrf_comp_hyst_t          hyst;               /**< Comparator hysteresis.*/
+#if defined (COMP_ISOURCE_ISOURCE_Msk) || defined (__SDK_DOXYGEN__)
     nrf_isource_t            isource;            /**< Current source selected on analog input. */
+#endif
     nrf_comp_input_t         input;              /**< Input to be monitored. */
     uint8_t                  interrupt_priority; /**< Interrupt priority. */
 } nrf_drv_comp_config_t;
@@ -123,7 +125,8 @@ typedef struct
 }
 
 /** @brief COMP driver default configuration including the COMP HAL configuration. */
-#define NRF_DRV_COMP_DEFAULT_CONFIG(INPUT)                                     \
+#if defined (COMP_ISOURCE_ISOURCE_Msk)
+#define NRF_DRV_COMP_DEFAULT_CONFIG(INPUT)                                          \
 {                                                                                   \
     .reference          = (nrf_comp_ref_t)COMP_CONFIG_REF,                          \
     .main_mode          = (nrf_comp_main_mode_t)COMP_CONFIG_MAIN_MODE,              \
@@ -134,6 +137,18 @@ typedef struct
     .input              = (nrf_comp_input_t)INPUT,                                  \
     .interrupt_priority = COMP_CONFIG_IRQ_PRIORITY                                  \
 }
+#else
+#define NRF_DRV_COMP_DEFAULT_CONFIG(INPUT)                                          \
+{                                                                                   \
+    .reference          = (nrf_comp_ref_t)COMP_CONFIG_REF,                          \
+    .main_mode          = (nrf_comp_main_mode_t)COMP_CONFIG_MAIN_MODE,              \
+    .threshold          = COMP_CONFIG_TH,                                           \
+    .speed_mode         = (nrf_comp_sp_mode_t)COMP_CONFIG_SPEED_MODE,               \
+    .hyst               = (nrf_comp_hyst_t)COMP_CONFIG_HYST,                        \
+    .input              = (nrf_comp_input_t)INPUT,                                  \
+    .interrupt_priority = COMP_CONFIG_IRQ_PRIORITY                                  \
+}
+#endif
 
 /**
  * @brief Function for initializing the COMP driver.

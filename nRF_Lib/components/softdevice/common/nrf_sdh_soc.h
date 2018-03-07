@@ -73,7 +73,8 @@ extern "C" {
  * @hideinitializer
  */
 #define NRF_SDH_SOC_OBSERVER(_name, _prio, _handler, _context)                                      \
-STATIC_ASSERT(_prio < NRF_SDH_SOC_OBSERVER_PRIO_LEVELS);                                            \
+STATIC_ASSERT(NRF_SDH_SOC_ENABLED, "NRF_SDH_SOC_ENABLED not set!");                                 \
+STATIC_ASSERT(_prio < NRF_SDH_SOC_OBSERVER_PRIO_LEVELS, "Priority level unavailable.");             \
 NRF_SECTION_SET_ITEM_REGISTER(sdh_soc_observers, _prio, static nrf_sdh_soc_evt_observer_t _name) =  \
 {                                                                                                   \
     .handler   = _handler,                                                                          \
@@ -96,7 +97,8 @@ NRF_SECTION_SET_ITEM_REGISTER(sdh_soc_observers, _prio, static nrf_sdh_soc_evt_o
  * @hideinitializer
  */
 #define NRF_SDH_SOC_EVENT_OBSERVERS(_name, _prio, _handler, _context, _cnt)                              \
-STATIC_ASSERT(_prio < NRF_SDH_SOC_OBSERVER_PRIO_LEVELS);                                                 \
+STATIC_ASSERT(NRF_SDH_SOC_ENABLED, "NRF_SDH_SOC_ENABLED not set!");                                      \
+STATIC_ASSERT(_prio < NRF_SDH_SOC_OBSERVER_PRIO_LEVELS, "Priority level unavailable.");                  \
 NRF_SECTION_SET_ITEM_REGISTER(sdh_soc_observers, _prio, static nrf_sdh_soc_evt_observer_t _name[_cnt]) = \
 {                                                                                                        \
     MACRO_REPEAT_FOR(_cnt, HANDLER_SET, _handler, _context)                                              \
@@ -109,15 +111,16 @@ NRF_SECTION_SET_ITEM_REGISTER(sdh_soc_observers, _prio, static nrf_sdh_soc_evt_o
     .p_context = _context[_idx],                                                                    \
 },
 #endif
-#else
 
-// Swallow semicolons
-//lint -save -esym(528, *) -esym(529, *) : Symbol not referenced
+#else // __LINT__
+
+/* Swallow semicolons */
+/*lint -save -esym(528, *) -esym(529, *) : Symbol not referenced. */
 #define NRF_SDH_SOC_OBSERVER(A, B, C, D)     static int semicolon_swallow_##A
 #define NRF_SDH_SOC_OBSERVERS(A, B, C, D, E) static int semicolon_swallow_##A
-//lint -restore
+/*lint -restore */
 
-#endif  // __LINT__
+#endif
 
 
 /**@brief   SoC event handler. */

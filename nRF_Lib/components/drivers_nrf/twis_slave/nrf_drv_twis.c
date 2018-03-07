@@ -39,9 +39,8 @@
  */
 #include "sdk_common.h"
 #if NRF_MODULE_ENABLED(TWIS)
-#define ENABLED_TWIS_COUNT (TWIS0_ENABLED+TWIS1_ENABLED)
-#if ENABLED_TWIS_COUNT
 #include "nrf_drv_twis.h"
+#if ENABLED_TWIS_COUNT
 #include "nrf_assert.h"
 #include "app_util_platform.h"
 #include "compiler_abstraction.h"
@@ -456,15 +455,17 @@ static void nrf_drv_twis_state_machine(uint8_t instNr)
             }
             else
             {
-                nrf_drv_twis_process_error(instNr, TWIS_EVT_GENERAL_ERROR, nrf_twis_error_source_get_and_clear(p_reg));
+                nrf_drv_twis_process_error(instNr,
+                                           TWIS_EVT_GENERAL_ERROR,
+                                           nrf_twis_error_source_get_and_clear(p_reg));
                 ev = 0;
             }
             break;
         case NRF_DRV_TWIS_SUBSTATE_READ_WAITING:
             if (nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_TXSTARTED) ||
-               nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_WRITE)     ||
-               nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_READ)      ||
-               nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_STOPPED))
+                nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_WRITE)     ||
+                nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_READ)      ||
+                nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_STOPPED))
             {
                 substate = NRF_DRV_TWIS_SUBSTATE_READ_PENDING;
                 /* Any other bits requires further processing in PENDING substate */
@@ -472,21 +473,24 @@ static void nrf_drv_twis_state_machine(uint8_t instNr)
             }
             else
             {
-                nrf_drv_twis_process_error(instNr, TWIS_EVT_READ_ERROR, nrf_twis_error_source_get_and_clear(p_reg));
+                nrf_drv_twis_process_error(instNr,
+                                           TWIS_EVT_READ_ERROR,
+                                           nrf_twis_error_source_get_and_clear(p_reg));
                 substate = NRF_DRV_TWIS_SUBSTATE_IDLE;
                 ev = 0;
             }
             break;
         case NRF_DRV_TWIS_SUBSTATE_READ_PENDING:
-            if (nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_WRITE)||
-               nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_READ) ||
-               nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_STOPPED))
+            if (nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_WRITE)    ||
+                nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_READ)     ||
+                nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_STOPPED))
             {
                 evdata.type = TWIS_EVT_READ_DONE;
                 evdata.data.tx_amount = nrf_twis_tx_amount_get(p_reg);
-                NRF_LOG_INFO("Transfer rx_len:%d", evdata.data.tx_amount);
+                NRF_LOG_INFO("Transfer tx_len:%d", evdata.data.tx_amount);
                 NRF_LOG_DEBUG("Tx data:");
-                NRF_LOG_HEXDUMP_DEBUG((uint8_t *)p_reg->TXD.PTR, evdata.data.tx_amount * sizeof(p_reg->TXD.PTR));
+                NRF_LOG_HEXDUMP_DEBUG((uint8_t const *)p_reg->TXD.PTR,
+                                      evdata.data.tx_amount * sizeof(uint8_t));
                 nrf_drv_call_event_handler(instNr, &evdata);
                 /* Go to idle and repeat the state machine if READ or WRITE events detected.
                  * This time READ or WRITE would be started */
@@ -495,16 +499,18 @@ static void nrf_drv_twis_state_machine(uint8_t instNr)
             }
             else
             {
-                nrf_drv_twis_process_error(instNr, TWIS_EVT_READ_ERROR, nrf_twis_error_source_get_and_clear(p_reg));
+                nrf_drv_twis_process_error(instNr,
+                                           TWIS_EVT_READ_ERROR,
+                                           nrf_twis_error_source_get_and_clear(p_reg));
                 substate = NRF_DRV_TWIS_SUBSTATE_IDLE;
                 ev = 0;
             }
             break;
         case NRF_DRV_TWIS_SUBSTATE_WRITE_WAITING:
             if (nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_RXSTARTED) ||
-               nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_WRITE)     ||
-               nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_READ)      ||
-               nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_STOPPED))
+                nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_WRITE)     ||
+                nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_READ)      ||
+                nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_STOPPED))
             {
                 substate = NRF_DRV_TWIS_SUBSTATE_WRITE_PENDING;
                 /* Any other bits requires further processing in PENDING substate */
@@ -512,15 +518,17 @@ static void nrf_drv_twis_state_machine(uint8_t instNr)
             }
             else
             {
-                nrf_drv_twis_process_error(instNr, TWIS_EVT_WRITE_ERROR, nrf_twis_error_source_get_and_clear(p_reg));
+                nrf_drv_twis_process_error(instNr,
+                                           TWIS_EVT_WRITE_ERROR,
+                                           nrf_twis_error_source_get_and_clear(p_reg));
                 substate = NRF_DRV_TWIS_SUBSTATE_IDLE;
                 ev = 0;
             }
             break;
         case NRF_DRV_TWIS_SUBSTATE_WRITE_PENDING:
-            if (nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_WRITE)||
-               nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_READ) ||
-               nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_STOPPED))
+            if (nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_WRITE)    ||
+                nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_READ)     ||
+                nrf_drv_twis_check_bit(ev, NRF_TWIS_EVENT_STOPPED))
             {
                 evdata.type = TWIS_EVT_WRITE_DONE;
                 evdata.data.rx_amount = nrf_twis_rx_amount_get(p_reg);
@@ -532,7 +540,9 @@ static void nrf_drv_twis_state_machine(uint8_t instNr)
             }
             else
             {
-                nrf_drv_twis_process_error(instNr, TWIS_EVT_WRITE_ERROR, nrf_twis_error_source_get_and_clear(p_reg));
+                nrf_drv_twis_process_error(instNr,
+                                           TWIS_EVT_WRITE_ERROR,
+                                           nrf_twis_error_source_get_and_clear(p_reg));
                 substate = NRF_DRV_TWIS_SUBSTATE_IDLE;
                 ev = 0;
             }
@@ -607,19 +617,22 @@ ret_code_t nrf_drv_twis_init(
     nrf_twis_config_addr_mask_t addr_mask = (nrf_twis_config_addr_mask_t)0;
     ret_code_t err_code;
 
-    if ( m_var_inst[instNr].state != NRF_DRV_STATE_UNINITIALIZED)
+    if (m_var_inst[instNr].state != NRF_DRV_STATE_UNINITIALIZED)
     {
         err_code = NRF_ERROR_INVALID_STATE;
-        NRF_LOG_WARNING("Function: %s, error code: %s.", (uint32_t)__func__, (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
+        NRF_LOG_WARNING("Function: %s, error code: %s.",
+                        (uint32_t)__func__,
+                        (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
         return err_code;
     }
 
 #if NRF_MODULE_ENABLED(PERIPHERAL_RESOURCE_SHARING)
-    if (nrf_drv_common_per_res_acquire(p_reg, m_irq_handlers[instNr]) !=
-            NRF_SUCCESS)
+    if (nrf_drv_common_per_res_acquire(p_reg, m_irq_handlers[instNr]) != NRF_SUCCESS)
     {
         err_code = NRF_ERROR_BUSY;
-        NRF_LOG_WARNING("Function: %s, error code: %s.", (uint32_t)__func__, (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
+        NRF_LOG_WARNING("Function: %s, error code: %s.",
+                        (uint32_t)__func__,
+                        (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
         return err_code;
     }
 #endif
@@ -667,7 +680,9 @@ ret_code_t nrf_drv_twis_init(
     m_var_inst[instNr].ev_handler = event_handler;
     m_var_inst[instNr].state      = NRF_DRV_STATE_INITIALIZED;
     err_code = NRF_SUCCESS;
-    NRF_LOG_INFO("Function: %s, error code: %s.", (uint32_t)__func__, (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
+    NRF_LOG_INFO("Function: %s, error code: %s.",
+                 (uint32_t)__func__,
+                 (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
     return err_code;
 }
 
@@ -831,26 +846,34 @@ ret_code_t nrf_drv_twis_tx_prepare(
     if (p_var_inst->state != NRF_DRV_STATE_POWERED_ON)
     {
         err_code = NRF_ERROR_INVALID_STATE;
-        NRF_LOG_WARNING("Function: %s, error code: %s.", (uint32_t)__func__, (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
+        NRF_LOG_WARNING("Function: %s, error code: %s.",
+                        (uint32_t)__func__,
+                        (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
         return err_code;
     }
     /* Check data address */
     if (!nrf_drv_is_in_RAM(p_buf))
     {
         err_code = NRF_ERROR_INVALID_ADDR;
-        NRF_LOG_WARNING("Function: %s, error code: %s.", (uint32_t)__func__, (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
+        NRF_LOG_WARNING("Function: %s, error code: %s.",
+                        (uint32_t)__func__,
+                        (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
         return err_code;
     }
     /* Check data size */
     if ((size & TWIS_TXD_MAXCNT_MAXCNT_Msk) != size)
     {
         err_code = NRF_ERROR_INVALID_LENGTH;
-        NRF_LOG_WARNING("Function: %s, error code: %s.", (uint32_t)__func__, (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
+        NRF_LOG_WARNING("Function: %s, error code: %s.",
+                        (uint32_t)__func__,
+                        (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
         return err_code;
     }
 
     nrf_twis_tx_prepare(p_reg, (uint8_t const *)p_buf, (nrf_twis_amount_t)size);
-    NRF_LOG_INFO("Function: %s, error code: %s.", (uint32_t)__func__, (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
+    NRF_LOG_INFO("Function: %s, error code: %s.",
+                 (uint32_t)__func__,
+                 (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
     return err_code;
 
 }
@@ -879,27 +902,35 @@ ret_code_t nrf_drv_twis_rx_prepare(
     if (p_var_inst->state != NRF_DRV_STATE_POWERED_ON)
     {
         err_code = NRF_ERROR_INVALID_STATE;
-        NRF_LOG_WARNING("Function: %s, error code: %s.", (uint32_t)__func__, (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
+        NRF_LOG_WARNING("Function: %s, error code: %s.",
+                        (uint32_t)__func__,
+                        (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
         return err_code;
     }
     /* Check data address */
     if (!nrf_drv_is_in_RAM(p_buf))
     {
         err_code = NRF_ERROR_INVALID_ADDR;
-        NRF_LOG_WARNING("Function: %s, error code: %s.", (uint32_t)__func__, (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
+        NRF_LOG_WARNING("Function: %s, error code: %s.",
+                        (uint32_t)__func__,
+                        (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
         return err_code;
     }
     /* Check data size */
     if ((size & TWIS_RXD_MAXCNT_MAXCNT_Msk) != size)
     {
         err_code = NRF_ERROR_INVALID_LENGTH;
-        NRF_LOG_WARNING("Function: %s, error code: %s.", (uint32_t)__func__, (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
+        NRF_LOG_WARNING("Function: %s, error code: %s.",
+                        (uint32_t)__func__,
+                        (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
         return err_code;
     }
 
     nrf_twis_rx_prepare(p_reg, (uint8_t *)p_buf, (nrf_twis_amount_t)size);
     err_code = NRF_SUCCESS;
-    NRF_LOG_INFO("Function: %s, error code: %s.", (uint32_t)__func__, (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
+    NRF_LOG_INFO("Function: %s, error code: %s.",
+                 (uint32_t)__func__,
+                 (uint32_t)NRF_LOG_ERROR_STRING_GET(err_code));
     return err_code;
 }
 

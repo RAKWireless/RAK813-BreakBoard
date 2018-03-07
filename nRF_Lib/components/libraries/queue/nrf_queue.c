@@ -454,4 +454,11 @@ size_t nrf_queue_max_utilization_get(nrf_queue_t const * p_queue)
     return p_queue->p_cb->max_utilization;
 }
 
+void nrf_queue_max_utilization_reset(nrf_queue_t const * p_queue)
+{
+    ASSERT(p_queue != NULL);
+    p_queue->p_cb->max_utilization = 0;
+}
+
+
 #endif // NRF_MODULE_ENABLED(NRF_QUEUE)

@@ -311,11 +311,12 @@ uint32_t nrf_drv_pwm_simple_playback(nrf_drv_pwm_t const * const p_instance,
     }
     nrf_pwm_shorts_set(p_instance->p_registers, shorts_mask);
 
-    NRF_LOG_INFO("Function: %s, sequence length: %d.", (uint32_t)__func__,
-        p_sequence->length * sizeof(p_sequence->values));
+    NRF_LOG_INFO("Function: %s, sequence length: %d.",
+                 (uint32_t)__func__,
+                 p_sequence->length);
     NRF_LOG_DEBUG("Sequence data:");
     NRF_LOG_HEXDUMP_DEBUG((uint8_t *)p_sequence->values.p_raw,
-        p_sequence->length * sizeof(p_sequence->values));
+        p_sequence->length * sizeof(uint16_t));
     return start_playback(p_instance, p_cb, flags,
         odd ? NRF_PWM_TASK_SEQSTART1 : NRF_PWM_TASK_SEQSTART0);
 }
@@ -352,16 +353,18 @@ uint32_t nrf_drv_pwm_complex_playback(nrf_drv_pwm_t const * const p_instance,
     }
     nrf_pwm_shorts_set(p_instance->p_registers, shorts_mask);
 
-    NRF_LOG_INFO("Function: %s, sequence 0 length: %d.", (uint32_t)__func__,
-        p_sequence_0->length * sizeof(p_sequence_0->values));
-    NRF_LOG_INFO("Function: %s, sequence 1 length: %d.", (uint32_t)__func__,
-        p_sequence_1->length * sizeof(p_sequence_1->values));
+    NRF_LOG_INFO("Function: %s, sequence 0 length: %d.",
+                 (uint32_t)__func__,
+                 p_sequence_0->length);
+    NRF_LOG_INFO("Function: %s, sequence 1 length: %d.",
+                 (uint32_t)__func__,
+                 p_sequence_1->length);
     NRF_LOG_DEBUG("Sequence 0 data:");
     NRF_LOG_HEXDUMP_DEBUG((uint8_t *)p_sequence_0->values.p_raw,
-        p_sequence_0->length * sizeof(p_sequence_0->values));
+                          p_sequence_0->length * sizeof(uint16_t));
     NRF_LOG_DEBUG("Sequence 1 data:");
     NRF_LOG_HEXDUMP_DEBUG((uint8_t *)p_sequence_1->values.p_raw,
-        p_sequence_1->length * sizeof(p_sequence_1->values));
+                          p_sequence_1->length * sizeof(uint16_t));
     return start_playback(p_instance, p_cb, flags, NRF_PWM_TASK_SEQSTART0);
 }
 

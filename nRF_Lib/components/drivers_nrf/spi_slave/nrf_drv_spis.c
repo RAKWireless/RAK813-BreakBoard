@@ -39,9 +39,8 @@
  */
 #include "sdk_common.h"
 #if NRF_MODULE_ENABLED(SPIS)
-#define ENABLED_SPIS_COUNT (SPIS0_ENABLED+SPIS1_ENABLED+SPIS2_ENABLED)
-#if ENABLED_SPIS_COUNT
 #include "nrf_drv_spis.h"
+#if ENABLED_SPIS_COUNT
 #include <stdbool.h>
 #include <stdio.h>
 #include "nrf.h"
@@ -350,7 +349,7 @@ static void spis_state_entry_action_execute(NRF_SPIS_Type * p_spis,
             NRF_LOG_INFO("Transfer rx_len:%d.", event.rx_amount);
             NRF_LOG_DEBUG("Rx data:");
             NRF_LOG_HEXDUMP_DEBUG((uint8_t *)p_cb->rx_buffer,
-                                  event.rx_amount * sizeof(p_cb->rx_buffer));
+                                  event.rx_amount * sizeof(p_cb->rx_buffer[0]));
             APP_ERROR_CHECK_BOOL(p_cb->handler != NULL);
             p_cb->handler(event);
             break;

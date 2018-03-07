@@ -44,6 +44,7 @@
 #include "sdk_errors.h"
 #include "ble.h"
 #include "ble_advertising.h"
+#include "peer_manager.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,33 +54,33 @@ extern "C" {
  *
  * @addtogroup nfc_api
  *
- * @defgroup nfc_ble_pair_lib NFC BLE Pairing Lib
+ * @defgroup nfc_ble_pair_lib NFC BLE Pairing Library
  * @ingroup  nfc_api
- * @brief    @tagAPI52 High level library for BLE Connection Handover pairing using NFC.
+ * @brief    @tagAPI52 High-level library for BLE Connection Handover pairing using NFC.
  * @{
  */
 
 /**
- * @brief NFC pairing types
+ * @brief NFC pairing types.
  */
 typedef enum
 {
-    NFC_PAIRING_MODE_JUST_WORKS,        /**< Legacy Just Works pairing without security key */
-    NFC_PAIRING_MODE_OOB,               /**< Legacy OOB pairing with Temporary Key shared through NFC tag data */
-    NFC_PAIRING_MODE_LESC_JUST_WORKS,   /**< LESC pairing without authentication data */
-    NFC_PAIRING_MODE_LESC_OOB,          /**< LESC pairing with OOB authentication data */
-    NFC_PAIRING_MODE_GENERIC_OOB,       /**< OOB pairing with fallback from LESC to Legacy mode */
-    NFC_PAIRING_MODE_CNT                /**< Number of available pairing modes */
+    NFC_PAIRING_MODE_JUST_WORKS,        /**< Legacy Just Works pairing without a security key. */
+    NFC_PAIRING_MODE_OOB,               /**< Legacy OOB pairing with a Temporary Key shared through NFC tag data. */
+    NFC_PAIRING_MODE_LESC_JUST_WORKS,   /**< LESC pairing without authentication data. */
+    NFC_PAIRING_MODE_LESC_OOB,          /**< LESC pairing with OOB authentication data. */
+    NFC_PAIRING_MODE_GENERIC_OOB,       /**< OOB pairing with fallback from LESC to Legacy mode. */
+    NFC_PAIRING_MODE_CNT                /**< Number of available pairing modes. */
 } nfc_pairing_mode_t;
 
 /**
- * @brief Initializes NFC tag data and turns on tag emulation.
+ * @brief Funtion for initializing NFC tag data and turning on tag emulation.
  *
  * @warning It is assumed that Peer Manager has already been initialized before calling this function.
  *          It is also assumed that BLE advertising has already been initialized and it is configured
  *          to run in the BLE_ADV_MODE_FAST mode.
  *
- * @param[in] mode                  Pairing mode, this is value of the @ref nfc_pairing_mode_t enum.
+ * @param[in] mode                  Pairing mode, this is the value of the @ref nfc_pairing_mode_t enum.
  * @param[in] p_advertising         Pointer to the advertising module instance.
  *
  * @retval NRF_SUCCESS              If NFC has been initialized properly.
@@ -90,9 +91,9 @@ typedef enum
 ret_code_t nfc_ble_pair_init(ble_advertising_t * const p_advertising, nfc_pairing_mode_t mode);
 
 /**
- * @brief Sets pairing data and BLE security mode.
+ * @brief Function for setting pairing data and BLE security mode.
  *
- * @param[in] mode                  New pairing mode, this is value of the @ref nfc_pairing_mode_t enum.
+ * @param[in] mode                  New pairing mode, this is the value of the @ref nfc_pairing_mode_t enum.
  *
  * @retval NRF_SUCCESS              If new pairing mode has been set correctly.
  * @retval NRF_ERROR_INVALID_PARAM  If pairing mode is invalid.
@@ -101,11 +102,31 @@ ret_code_t nfc_ble_pair_init(ble_advertising_t * const p_advertising, nfc_pairin
 ret_code_t nfc_ble_pair_mode_set(nfc_pairing_mode_t mode);
 
 /**
- * @brief Funtion to obtain current pairing mode.
+ * @brief Function for obtaining the current pairing mode.
  *
  * @return Current pairing mode.
  */
 nfc_pairing_mode_t nfc_ble_pair_mode_get(void);
+
+/**
+ * @brief Function for replying to @ref PM_EVT_CONN_SEC_PARAMS_REQ.
+ *
+ * @details This function is used to allow dynamic changes in the Peer Manager
+ *          security parameters depending on security parameters
+ *          obtained from the peer. This is essential for dynamic switching
+ *          between Legacy OOB and LESC OOB pairing modes when pairing
+ *          library works in @ref NFC_PAIRING_MODE_GENERIC_OOB mode.
+ *
+ * @note This function invokes the @ref pm_conn_sec_params_reply function.
+ *
+ * @param[in] p_evt       Pointer to the Peer Manager event struct with
+ *                        information about peer security parameters.
+ *
+ * @retval NRF_SUCCESS    If proper reply has been sent or library does not need to reply.
+ * @retval NRF_ERROR_NULL If pointer to the Peer Manager event is NULL.
+ * @retval Other          Other error codes might be returned by the @ref pm_conn_sec_params_reply function.
+ */
+ret_code_t nfc_ble_pair_on_pm_params_req(pm_evt_t const * p_evt);
 
 /** @} */
 

@@ -44,6 +44,7 @@
 #include <string.h>
 #include "ble.h"
 #include "ble_gap.h"
+#include "ble_err.h"
 #include "ble_conn_state.h"
 #include "peer_manager_types.h"
 #include "peer_database.h"
@@ -61,12 +62,12 @@
 
 
 // Identity Manager event handlers in Peer Manager and GATT Cache Manager.
-extern void pm_im_evt_handler(im_evt_t const * p_event);
-extern void gcm_im_evt_handler(im_evt_t const * p_event);
+extern void pm_im_evt_handler(pm_evt_t * p_event);
+extern void gcm_im_evt_handler(pm_evt_t * p_event);
 
 // Identity Manager events' handlers.
 // The number of elements in this array is IM_EVENT_HANDLERS_CNT.
-static im_evt_handler_t const m_evt_handlers[] =
+static pm_evt_handler_internal_t const m_evt_handlers[] =
 {
     pm_im_evt_handler,
     gcm_im_evt_handler
@@ -107,7 +108,7 @@ static void internal_state_reset()
  *
  * @param[in] p_event The event to distribute.
  */
-static void evt_send(im_evt_t * p_event)
+static void evt_send(pm_evt_t * p_event)
 {
     for (uint32_t i = 0; i < IM_EVENT_HANDLERS_CNT; i++)
     {
@@ -244,6 +245,7 @@ bool addr_compare(ble_gap_addr_t const * p_addr1, ble_gap_addr_t const * p_addr2
     {
         return false;
     }
+
     // Check if the addr bytes are is identical
     return (memcmp(p_addr1->addr, p_addr2->addr, BLE_GAP_ADDR_LEN) == 0);
 }
@@ -325,9 +327,10 @@ void im_ble_evt_handler(ble_evt_t const * ble_evt)
         im_new_peer_id(gap_evt.conn_handle, bonded_matching_peer_id);
 
         // Send a bonded peer event
-        im_evt_t im_evt;
+        pm_evt_t im_evt;
         im_evt.conn_handle = gap_evt.conn_handle;
-        im_evt.evt_id      = IM_EVT_BONDED_PEER_CONNECTED;
+        im_evt.peer_id     = bonded_matching_peer_id;
+        im_evt.evt_id      = PM_EVT_BONDED_PEER_CONNECTED;
         evt_send(&im_evt);
     }
 }
@@ -347,78 +350,46 @@ bool im_is_duplicate_bonding_data(pm_peer_data_bonding_t const * p_bonding_data1
     NRF_PM_DEBUG_CHECK(p_bonding_data1 != NULL);
     NRF_PM_DEBUG_CHECK(p_bonding_data2 != NULL);
 
-    if (!is_valid_irk(&p_bonding_data1->peer_ble_id.id_info))
-    {
-        return false;
-    }
+    ble_gap_addr_t const * p_addr1 = &p_bonding_data1->peer_ble_id.id_addr_info;
+    ble_gap_addr_t const * p_addr2 = &p_bonding_data2->peer_ble_id.id_addr_info;
 
-    bool duplicate_irk = (memcmp(p_bonding_data1->peer_ble_id.id_info.irk,
-                                 p_bonding_data2->peer_ble_id.id_info.irk,
-                                 BLE_GAP_SEC_KEY_LEN) == 0);
+    bool duplicate_irk = ((memcmp(p_bonding_data1->peer_ble_id.id_info.irk,
+                                  p_bonding_data2->peer_ble_id.id_info.irk,
+                                  BLE_GAP_SEC_KEY_LEN) == 0)
+                          && is_valid_irk(&p_bonding_data1->peer_ble_id.id_info)
+                          && is_valid_irk(&p_bonding_data2->peer_ble_id.id_info));
 
-    bool duplicate_addr = addr_compare(&p_bonding_data1->peer_ble_id.id_addr_info,
-                                       &p_bonding_data2->peer_ble_id.id_addr_info);
+    bool duplicate_addr = addr_compare(p_addr1, p_addr2);
 
-    return duplicate_irk || duplicate_addr;
+    bool id_addrs =   ((p_addr1->addr_type != BLE_GAP_ADDR_TYPE_RANDOM_PRIVATE_RESOLVABLE)
+                    && (p_addr1->addr_type != BLE_GAP_ADDR_TYPE_RANDOM_PRIVATE_NON_RESOLVABLE)
+                    && (p_addr2->addr_type != BLE_GAP_ADDR_TYPE_RANDOM_PRIVATE_RESOLVABLE)
+                    && (p_addr2->addr_type != BLE_GAP_ADDR_TYPE_RANDOM_PRIVATE_NON_RESOLVABLE));
+
+    return (duplicate_addr && id_addrs) || (duplicate_irk && !id_addrs);
 }
 
 
-/**@brief Event handler for events from the Peer Database module.
- *        This function is extern in Peer Database.
- *
- * @param[in]  p_event The event that has happend with peer id and flags.
- */
-void im_pdb_evt_handler(pdb_evt_t const * p_event)
+pm_peer_id_t im_find_duplicate_bonding_data(pm_peer_data_bonding_t const * p_bonding_data,
+                                            pm_peer_id_t                   peer_id_skip)
 {
-    ret_code_t           ret;
-    pm_peer_id_t         peer_id;
-    pm_peer_data_flash_t peer_data;
+    pm_peer_id_t peer_id;
     pm_peer_data_flash_t peer_data_duplicate;
 
-    NRF_PM_DEBUG_CHECK(m_module_initialized);
-    NRF_PM_DEBUG_CHECK(p_event != NULL);
-
-    if ((p_event->evt_id  != PDB_EVT_WRITE_BUF_STORED) ||
-        (p_event->data_id != PM_PEER_DATA_ID_BONDING))
-    {
-        return;
-    }
-
-    // If new data about peer id has been stored it is compared to other peers peer ids in
-    // search of duplicates.
-
-    ret = pdb_peer_data_ptr_get(p_event->peer_id, PM_PEER_DATA_ID_BONDING, &peer_data);
-
-    if (ret != NRF_SUCCESS)
-    {
-        // @note emdi: this shouldn't happen, since the data was just stored, right?
-        NRF_PM_DEBUG_CHECK(false);
-        return;
-    }
+    NRF_PM_DEBUG_CHECK(p_bonding_data != NULL);
 
     pds_peer_data_iterate_prepare();
 
     while (pds_peer_data_iterate(PM_PEER_DATA_ID_BONDING, &peer_id, &peer_data_duplicate))
     {
-        if (p_event->peer_id == peer_id)
+        if (  (peer_id != peer_id_skip)
+            && im_is_duplicate_bonding_data(p_bonding_data,
+                                            peer_data_duplicate.p_bonding_data))
         {
-            // Skip the iteration if the bonding data retrieved is for a peer
-            // with the same ID as the one contained in the event.
-            continue;
-        }
-
-        if (im_is_duplicate_bonding_data(peer_data.p_bonding_data,
-                                         peer_data_duplicate.p_bonding_data))
-        {
-            im_evt_t im_evt;
-            im_evt.conn_handle                   = im_conn_handle_get(p_event->peer_id);
-            im_evt.evt_id                        = IM_EVT_DUPLICATE_ID;
-            im_evt.params.duplicate_id.peer_id_1 = p_event->peer_id;
-            im_evt.params.duplicate_id.peer_id_2 = peer_id;
-            evt_send(&im_evt);
-            break;
+            return peer_id;
         }
     }
+    return PM_PEER_ID_INVALID;
 }
 
 

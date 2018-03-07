@@ -42,7 +42,7 @@
 
 /** @file
  *
- * @defgroup nfc_launch_app_msg Launch app messages
+ * @defgroup nfc_launchapp_msg Launch app messages
  * @{
  * @ingroup nfc_ndef_messages
  *

@@ -43,6 +43,7 @@
 
 #include <string.h>
 #include "ble_gap.h"
+#include "ble_err.h"
 #include "peer_manager_types.h"
 #include "peer_manager_internal.h"
 #include "peer_database.h"
@@ -54,20 +55,6 @@
 #define SYS_ATTR_USR                    (BLE_GATTS_SYS_ATTR_FLAG_USR_SRVCS)
 #define SYS_ATTR_BOTH                   (SYS_ATTR_SYS | SYS_ATTR_USR)
 
-// The number of registered event handlers.
-#define GSCM_EVENT_HANDLERS_CNT         (sizeof(m_evt_handler) / sizeof(m_evt_handler[0]))
-
-
-// GATTS Cache Manager event handler in Peer Manager.
-extern void gcm_gscm_evt_handler(gscm_evt_t const * p_event);
-
-// GATTS Cache Manager events' handlers.
-// The number of elements in this array is GSCM_EVENT_HANDLERS_CNT.
-static gscm_evt_handler_t m_evt_handler[] =
-{
-    gcm_gscm_evt_handler
-};
-
 static bool               m_module_initialized;
 static pm_peer_id_t       m_current_sc_store_peer_id;
 
@@ -78,15 +65,6 @@ static void internal_state_reset()
 {
     m_module_initialized       = false;
     m_current_sc_store_peer_id = PM_PEER_ID_INVALID;
-}
-
-
-static void evt_send(gscm_evt_t const * p_event)
-{
-    for (uint32_t i = 0; i < GSCM_EVENT_HANDLERS_CNT; i++)
-    {
-        m_evt_handler[i](p_event);
-    }
 }
 
 
@@ -129,31 +107,8 @@ static void service_changed_pending_set(void)
  *
  * @param[in]  p_event The event that has happend with peer id and flags.
  */
-void gscm_pdb_evt_handler(pdb_evt_t const * p_event)
+void gscm_pdb_evt_handler(pm_evt_t * p_event)
 {
-    if (p_event->evt_id == PDB_EVT_RAW_STORED)
-    {
-        if (p_event->data_id == PM_PEER_DATA_ID_SERVICE_CHANGED_PENDING)
-        {
-            ret_code_t           err_code;
-            pm_peer_data_flash_t peer_data;
-
-            err_code = pdb_peer_data_ptr_get(p_event->peer_id,
-                                             PM_PEER_DATA_ID_SERVICE_CHANGED_PENDING,
-                                             &peer_data);
-
-            if (err_code == NRF_SUCCESS)
-            {
-                gscm_evt_t gscm_evt;
-                gscm_evt.evt_id = GSCM_EVT_SC_STATE_STORED;
-                gscm_evt.peer_id = p_event->peer_id;
-                gscm_evt.params.sc_state_stored.state = &peer_data.p_service_changed_pending;
-
-                evt_send(&gscm_evt);
-            }
-        }
-    }
-
     if (m_current_sc_store_peer_id != PM_PEER_ID_INVALID)
     {
         service_changed_pending_set();
@@ -204,7 +159,7 @@ ret_code_t gscm_local_db_cache_update(uint16_t conn_handle)
 
                 if (err_code == NRF_SUCCESS)
                 {
-                    err_code = pdb_write_buf_store(peer_id, PM_PEER_DATA_ID_GATT_LOCAL);
+                    err_code = pdb_write_buf_store(peer_id, PM_PEER_DATA_ID_GATT_LOCAL, peer_id);
                 }
                 else
                 {
@@ -307,21 +262,6 @@ ret_code_t gscm_local_db_cache_apply(uint16_t conn_handle)
     return err_code;
 }
 
-
-ret_code_t gscm_local_db_cache_set(pm_peer_id_t peer_id, pm_peer_data_local_gatt_db_t * p_local_db)
-{
-    NRF_PM_DEBUG_CHECK(m_module_initialized);
-
-    pm_peer_data_const_t peer_data;
-
-    memset(&peer_data, 0, sizeof(pm_peer_data_const_t));
-    peer_data.data_id = PM_PEER_DATA_ID_GATT_LOCAL;
-    peer_data.p_local_gatt_db = p_local_db;
-
-    return pdb_raw_store(peer_id, &peer_data, NULL);
-}
-
-
 void gscm_local_database_has_changed(void)
 {
     NRF_PM_DEBUG_CHECK(m_module_initialized);
@@ -332,8 +272,11 @@ void gscm_local_database_has_changed(void)
 
 bool gscm_service_changed_ind_needed(uint16_t conn_handle)
 {
-    ret_code_t err_code;
+    ret_code_t           err_code;
+    bool                 service_changed_state;
     pm_peer_data_flash_t peer_data;
+
+    peer_data.p_service_changed_pending = &service_changed_state;
     pm_peer_id_t peer_id = im_peer_id_get_by_conn_handle(conn_handle);
 
     err_code = pdb_peer_data_ptr_get(peer_id, PM_PEER_DATA_ID_SERVICE_CHANGED_PENDING, &peer_data);
@@ -349,9 +292,16 @@ bool gscm_service_changed_ind_needed(uint16_t conn_handle)
 
 ret_code_t gscm_service_changed_ind_send(uint16_t conn_handle)
 {
-    static uint16_t start_handle = 0x0000;
-    const  uint16_t end_handle   = 0xFFFF;
+    static uint16_t start_handle;
+    const  uint16_t end_handle = 0xFFFF;
     ret_code_t err_code;
+
+    err_code = sd_ble_gatts_initial_user_handle_get(&start_handle);
+
+    if (err_code != NRF_SUCCESS)
+    {
+        return NRF_ERROR_INTERNAL;
+    }
 
     do
     {

@@ -39,5 +39,14 @@
  */
 #include <stdint.h>
 
+/**
+ *
+ * @defgroup nfc_ble_pair_common Common data for Connection Handover and Connection Handover Parser modules
+ * @{
+ * @ingroup nfc_ble_pair_msg
+ */
+
 /* Record Payload Type for Bluetooth Carrier Configuration LE record */
 extern const uint8_t le_oob_rec_type_field[32];
+
+/** @} */

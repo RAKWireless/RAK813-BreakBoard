@@ -3294,11 +3294,11 @@
 
 // </e>
 
-// <q> APP_TWI_ENABLED  - app_twi - TWI transaction manager
+// <q> NRF_TWI_MNGR_ENABLED  - nrf_twi_mngr - TWI transaction manager
  
 
-#ifndef APP_TWI_ENABLED
-#define APP_TWI_ENABLED 0
+#ifndef NRF_TWI_MNGR_ENABLED
+#define NRF_TWI_MNGR_ENABLED 0
 #endif
 
 // <e> APP_UART_ENABLED - app_uart - UART driver
@@ -8165,7 +8165,7 @@
 // <e> NRF_SDH_BLE_ENABLED - nrf_sdh_ble - SoftDevice BLE event handler
 //==========================================================
 #ifndef NRF_SDH_BLE_ENABLED
-#define NRF_SDH_BLE_ENABLED 0
+#define NRF_SDH_BLE_ENABLED 1
 #endif
 // <h> BLE Stack configuration - Stack configuration parameters
 

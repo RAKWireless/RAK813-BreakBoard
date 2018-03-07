@@ -49,6 +49,7 @@
 #ifndef APP_ERROR_H__
 #define APP_ERROR_H__
 
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -59,6 +60,8 @@
 #ifdef ANT_STACK_SUPPORT_REQD
 #include "ant_error.h"
 #endif // ANT_STACK_SUPPORT_REQD
+
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -112,76 +115,6 @@ void app_error_handler_bare(ret_code_t error_code);
  *                  identifier for details.
  */
 void app_error_save_and_stop(uint32_t id, uint32_t pc, uint32_t info);
-
-/**@brief       Function for printing all error info (using nrf_log).
- *
- * @details     Nrf_log library must be initialized using NRF_LOG_INIT macro before calling
- *              this function.
- *
- * @param[in] id    Fault identifier. See @ref NRF_FAULT_IDS.
- * @param[in] pc    The program counter of the instruction that triggered the fault, or 0 if
- *                  unavailable.
- * @param[in] info  Optional additional information regarding the fault. Refer to each fault
- *                  identifier for details.
- */
-static __INLINE void app_error_log(uint32_t id, uint32_t pc, uint32_t info)
-{
-    switch (id)
-    {
-        case NRF_FAULT_ID_SDK_ASSERT:
-            //NRF_LOG_INFO(NRF_LOG_COLOR_RED "\r\n*** ASSERTION FAILED ***\r\n");
-            if (((assert_info_t *)(info))->p_file_name)
-            {
-               // NRF_LOG_INFO(NRF_LOG_COLOR_WHITE "Line Number: %u\r\n", (unsigned int) ((assert_info_t *)(info))->line_num);
-                //NRF_LOG_INFO("File Name:   %s\r\n", ((assert_info_t *)(info))->p_file_name);
-            }
-            //NRF_LOG_INFO(NRF_LOG_COLOR_DEFAULT "\r\n");
-            break;
-
-        case NRF_FAULT_ID_SDK_ERROR:
-            //NRF_LOG_INFO(NRF_LOG_COLOR_RED "\r\n*** APPLICATION ERROR *** \r\n" NRF_LOG_COLOR_WHITE);
-            if (((error_info_t *)(info))->p_file_name)
-            {
-                //NRF_LOG_INFO("Line Number: %u\r\n", (unsigned int) ((error_info_t *)(info))->line_num);
-                //NRF_LOG_INFO("File Name:   %s\r\n", ((error_info_t *)(info))->p_file_name);
-            }
-            //NRF_LOG_INFO("Error Code:  0x%X\r\n" NRF_LOG_COLOR_DEFAULT "\r\n", (unsigned int) ((error_info_t *)(info))->err_code);
-            break;
-    }
-}
-
-/**@brief       Function for printing all error info (using printf).
- *
- * @param[in] id    Fault identifier. See @ref NRF_FAULT_IDS.
- * @param[in] pc    The program counter of the instruction that triggered the fault, or 0 if
- *                  unavailable.
- * @param[in] info  Optional additional information regarding the fault. Refer to each fault
- *                  identifier for details.
- */
-//lint -save -e438
-static __INLINE void app_error_print(uint32_t id, uint32_t pc, uint32_t info)
-{
-    unsigned int tmp = id;
-    printf("app_error_print():\r\n");
-    printf("Fault identifier:  0x%X\r\n", tmp);
-    printf("Program counter:   0x%X\r\n", tmp = pc);
-    printf("Fault information: 0x%X\r\n", tmp = info);
-
-    switch (id)
-    {
-        case NRF_FAULT_ID_SDK_ASSERT:
-            printf("Line Number: %u\r\n", tmp = ((assert_info_t *)(info))->line_num);
-            printf("File Name:   %s\r\n",       ((assert_info_t *)(info))->p_file_name);
-            break;
-
-        case NRF_FAULT_ID_SDK_ERROR:
-            printf("Line Number: %u\r\n",   tmp = ((error_info_t *)(info))->line_num);
-            printf("File Name:   %s\r\n",         ((error_info_t *)(info))->p_file_name);
-            printf("Error Code:  0x%X\r\n", tmp = ((error_info_t *)(info))->err_code);
-            break;
-    }
-}
-//lint -restore
 
 
 /**@brief Macro for calling error handler function.

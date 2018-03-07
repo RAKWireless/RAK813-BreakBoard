@@ -63,7 +63,7 @@ extern "C" {
  *
  * @details This registers a higher protocol layer with the L2CAP multiplexer, and is required prior to all operations on the CID.
  *
- * @param[in]     cid 			 L2CAP CID.
+ * @param[in]     cid            L2CAP CID.
  * @param[in]     p_buf          Pointer to beginning of command response packet.
  * @param[in,out] p_buf_len      \c in: Size of \p p_buf buffer.
  *                               \c out: Length of encoded command packet.
@@ -137,12 +137,12 @@ uint32_t ble_l2cap_cid_unregister_rsp_dec(uint8_t const * const p_buf,
  *          generate a @ref BLE_EVT_TX_COMPLETE event when the packet has been transmitted.
  *          See the documentation of @ref sd_ble_tx_packet_count_get for more details.
  *
- * @param[in]     conn_handle 		Connection handle.
+ * @param[in]     conn_handle       Connection handle.
  * @param[in]     p_l2cap_header    Pointer to a packet header containing length and CID.
- * @param[in]     p_data      		Pointer to the data to be transmitted.
- * @param[in]     p_buf         	Pointer to beginning of command response packet.
- * @param[in,out] p_buf_len 		\c in: Size of \p p_buf buffer.
- *                           		\c out: Length of encoded command packet.
+ * @param[in]     p_data            Pointer to the data to be transmitted.
+ * @param[in]     p_buf             Pointer to beginning of command response packet.
+ * @param[in,out] p_buf_len\        c in: Size of \p p_buf buffer.
+ *                                  \c out: Length of encoded command packet.
  *
  * @retval NRF_SUCCESS Successfully queued an L2CAP packet for transmission.
  * @retval NRF_ERROR_INVALID_ADDR Invalid pointer supplied.

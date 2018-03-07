@@ -297,7 +297,7 @@ uint32_t nrf_crypto_ecc_public_key_to_raw(nrf_crypto_curve_info_t       curve_ty
     uint32_t                        raw_param_size;
     uint32_t                        compact_key_size;
     uint32_t                        public_key_raw_size;
-    uint8_t                         public_key_buffer[NRF_CRYPTO_ECC_PUBLIC_KEY_SIZE_SECP521R1 + 1];
+    __ALIGN(4) uint8_t              public_key_buffer[NRF_CRYPTO_ECC_PUBLIC_KEY_SIZE_SECP521R1 + 1];
 
     // Check that both the public key and raw key is valid
     if (p_public_key == NULL || p_raw_key == NULL)
@@ -382,7 +382,7 @@ uint32_t nrf_crypto_ecc_public_key_from_raw(nrf_crypto_curve_info_t   curve_type
     // Compact representation of public key according to IEEE1363,
     // using 1 byte to designate the format.
     // Using a largest public key for size (used key will be equal or smaller).
-    uint8_t                         compact_rep[NRF_CRYPTO_ECC_PRIVATE_KEY_SIZE_SECP521R1 + 1];
+    __ALIGN(4) uint8_t              compact_rep[NRF_CRYPTO_ECC_PRIVATE_KEY_SIZE_SECP521R1 + 1];
 
     // Check that both the public key and raw key is valid
     if (p_public_key == NULL || p_public_key_raw == NULL)

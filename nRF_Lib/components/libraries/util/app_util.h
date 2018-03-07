@@ -87,6 +87,13 @@ enum
 };
 
 
+/*Segger embedded studio originally has offsetof macro which cannot be used in macros (like STATIC_ASSERT).
+  This redefinition is to allow using that. */
+#if defined(__SES_ARM) && defined(__GNUC__)
+#undef offsetof
+#define offsetof(TYPE, MEMBER) __builtin_offsetof (TYPE, MEMBER)
+#endif
+
 /**@brief Implementation specific macro for delayed macro expansion used in string concatenation
 *
 * @param[in]   lhs   Left hand side in concatenation
@@ -105,35 +112,50 @@ enum
 #define STRING_CONCATENATE(lhs, rhs) STRING_CONCATENATE_IMPL(lhs, rhs)
 
 
-// Disable lint-warnings/errors for STATIC_ASSERT
-//lint -emacro(10, STATIC_ASSERT)
-//lint -emacro(15, STATIC_ASSERT)
-//lint -emacro(18, STATIC_ASSERT)
-//lint -emacro(19, STATIC_ASSERT)
-//lint -emacro(30, STATIC_ASSERT)
-//lint -emacro(37, STATIC_ASSERT)
-//lint -emacro(42, STATIC_ASSERT)
-//lint -emacro(26, STATIC_ASSERT)
-//lint -emacro(102,STATIC_ASSERT)
-//lint -emacro(533,STATIC_ASSERT)
-//lint -emacro(534,STATIC_ASSERT)
-//lint -emacro(132,STATIC_ASSERT)
-//lint -emacro(414,STATIC_ASSERT)
-//lint -emacro(578,STATIC_ASSERT)
-//lint -emacro(628,STATIC_ASSERT)
-//lint -emacro(648,STATIC_ASSERT)
-//lint -emacro(830,STATIC_ASSERT)
+#ifndef __LINT__
 
-/**@brief Macro for doing static (i.e. compile time) assertion.
-*
-* @note If the EXPR isn't resolvable, then the error message won't be shown.
-* @note The output of STATIC_ASSERT will be different across different compilers.
-*
-* @param[in] EXPR Constant expression to be verified.
-* @hideinitializer
-*/
-#define STATIC_ASSERT(EXPR) \
-    extern char (*_do_assert(void)) [sizeof(char[1 - 2*!(EXPR)])]
+#ifdef __GNUC__
+#define STATIC_ASSERT_SIMPLE(EXPR)      _Static_assert(EXPR, "unspecified message")
+#define STATIC_ASSERT_MSG(EXPR, MSG)    _Static_assert(EXPR, MSG)
+#endif
+
+#ifdef __CC_ARM
+#define STATIC_ASSERT_SIMPLE(EXPR)      extern char (*_do_assert(void)) [sizeof(char[1 - 2*!(EXPR)])]
+#define STATIC_ASSERT_MSG(EXPR, MSG)    extern char (*_do_assert(void)) [sizeof(char[1 - 2*!(EXPR)])]
+#endif
+
+#ifdef __ICCARM__
+#define STATIC_ASSERT_SIMPLE(EXPR)      static_assert(EXPR, "unspecified message")
+#define STATIC_ASSERT_MSG(EXPR, MSG)    static_assert(EXPR, MSG)
+#endif
+
+#else // __LINT__
+
+#define STATIC_ASSERT_SIMPLE(EXPR)      extern char (*_ignore(void))
+#define STATIC_ASSERT_MSG(EXPR, MSG)    extern char (*_ignore(void))
+
+#endif
+
+
+#define _SELECT_ASSERT_FUNC(x, EXPR, MSG, ASSERT_MACRO, ...) ASSERT_MACRO
+
+/**
+ * @brief   Static (i.e. compile time) assert macro.
+ *
+ * @note The output of STATIC_ASSERT can be different across compilers.
+ *
+ * Usage:
+ * STATIC_ASSERT(expression);
+ * STATIC_ASSERT(expression, message);
+ *
+ * @hideinitializer
+ */
+//lint -save -esym(???, STATIC_ASSERT)
+#define STATIC_ASSERT(...)                                                                          \
+    _SELECT_ASSERT_FUNC(x, ##__VA_ARGS__,                                                           \
+                        STATIC_ASSERT_MSG(__VA_ARGS__),                                             \
+                        STATIC_ASSERT_SIMPLE(__VA_ARGS__))
+//lint -restore
 
 
 /**@brief Implementation details for NUM_VAR_ARGS */

@@ -867,8 +867,47 @@ uint32_t ble_db_discovery_evt_register(ble_uuid_t const * p_uuid)
 }
 
 
-uint32_t ble_db_discovery_start(ble_db_discovery_t * const p_db_discovery,
-                                uint16_t                   conn_handle)
+static uint32_t discovery_start(ble_db_discovery_t * const p_db_discovery, uint16_t conn_handle)
+{
+    uint32_t err_code;
+    ble_gatt_db_srv_t * p_srv_being_discovered;
+
+    memset(p_db_discovery, 0x00, sizeof(ble_db_discovery_t));
+
+    p_db_discovery->conn_handle = conn_handle;
+
+    m_pending_usr_evt_index   = 0;
+
+    p_db_discovery->discoveries_count = 0;
+    p_db_discovery->curr_srv_ind      = 0;
+    p_db_discovery->curr_char_ind     = 0;
+
+    p_srv_being_discovered = &(p_db_discovery->services[p_db_discovery->curr_srv_ind]);
+    p_srv_being_discovered->srv_uuid = m_registered_handlers[p_db_discovery->curr_srv_ind];
+
+    NRF_LOG_DEBUG("Starting discovery of service with UUID 0x%x on connection handle 0x%x.",
+                  p_srv_being_discovered->srv_uuid.uuid, conn_handle);
+
+    err_code = sd_ble_gattc_primary_services_discover(conn_handle,
+                                                      SRV_DISC_START_HANDLE,
+                                                      &(p_srv_being_discovered->srv_uuid));
+    if (err_code != NRF_ERROR_BUSY)
+    {
+        VERIFY_SUCCESS(err_code);
+        p_db_discovery->discovery_in_progress = true;
+        p_db_discovery->discovery_pending     = false;
+    }
+    else
+    {
+        p_db_discovery->discovery_in_progress = true;
+        p_db_discovery->discovery_pending     = true;
+    }
+
+    return NRF_SUCCESS;
+}
+
+
+uint32_t ble_db_discovery_start(ble_db_discovery_t * const p_db_discovery, uint16_t conn_handle)
 {
     VERIFY_PARAM_NOT_NULL(p_db_discovery);
     VERIFY_MODULE_INITIALIZED();
@@ -884,31 +923,7 @@ uint32_t ble_db_discovery_start(ble_db_discovery_t * const p_db_discovery,
         return NRF_ERROR_BUSY;
     }
 
-    p_db_discovery->conn_handle = conn_handle;
-    ble_gatt_db_srv_t * p_srv_being_discovered;
-
-    m_pending_usr_evt_index   = 0;
-
-    p_db_discovery->discoveries_count = 0;
-    p_db_discovery->curr_srv_ind      = 0;
-    p_db_discovery->curr_char_ind     = 0;
-
-    p_srv_being_discovered = &(p_db_discovery->services[p_db_discovery->curr_srv_ind]);
-
-    p_srv_being_discovered->srv_uuid = m_registered_handlers[p_db_discovery->curr_srv_ind];
-
-    NRF_LOG_DEBUG("Starting discovery of service with UUID 0x%x on connection handle 0x%x.",
-                  p_srv_being_discovered->srv_uuid.uuid, conn_handle);
-
-    uint32_t err_code;
-
-    err_code = sd_ble_gattc_primary_services_discover(conn_handle,
-                                                      SRV_DISC_START_HANDLE,
-                                                      &(p_srv_being_discovered->srv_uuid));
-    VERIFY_SUCCESS(err_code);
-    p_db_discovery->discovery_in_progress = true;
-
-    return NRF_SUCCESS;
+    return discovery_start(p_db_discovery, conn_handle);
 }
 
 
@@ -923,6 +938,8 @@ static void on_disconnected(ble_db_discovery_t       * p_db_discovery,
     if (p_evt->conn_handle == p_db_discovery->conn_handle)
     {
         p_db_discovery->discovery_in_progress = false;
+        p_db_discovery->discovery_pending     = false;
+        p_db_discovery->conn_handle           = BLE_CONN_HANDLE_INVALID;
     }
 }
 
@@ -956,6 +973,14 @@ void ble_db_discovery_on_ble_evt(ble_evt_t const * p_ble_evt,
 
         default:
             break;
+    }
+
+    if (   (p_db_discovery->discovery_pending)
+        && (p_ble_evt->header.evt_id >= BLE_GATTC_EVT_BASE)
+        && (p_ble_evt->header.evt_id <= BLE_GATTC_EVT_LAST)
+        && (p_ble_evt->evt.gattc_evt.conn_handle == p_db_discovery->conn_handle))
+    {
+        (void)discovery_start(p_db_discovery, p_db_discovery->conn_handle);
     }
 }
 #endif // NRF_MODULE_ENABLED(BLE_DB_DISCOVERY)

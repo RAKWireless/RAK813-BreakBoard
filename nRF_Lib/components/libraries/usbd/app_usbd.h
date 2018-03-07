@@ -41,13 +41,13 @@
 #ifndef APP_USBD_H__
 #define APP_USBD_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "nrf_drv_usbd.h"
 #include "app_usbd_types.h"
 #include "app_usbd_class_base.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @defgroup app_usbd USB Device high level library
@@ -59,6 +59,17 @@ extern "C" {
  * manages endpoints and interfaces transactions.
  * @{
  */
+
+/**
+ * @brief True if SOF timestamping is really provided.
+ *
+ * SOF timestamping is really provided if it was requested and if the logger is enabled.
+ */
+#if ((APP_USBD_CONFIG_PROVIDE_SOF_TIMESTAMP) && (NRF_LOG_ENABLED))
+#define APP_USBD_PROVIDE_SOF_TIMESTAMP 1
+#else
+#define APP_USBD_PROVIDE_SOF_TIMESTAMP 0
+#endif
 
 /**
  * @brief Configuration passed to @ref app_usbd_init.
@@ -120,6 +131,7 @@ typedef struct {
      *              - APP_USBD_EVT_DRV_RESUME - It is also generated when remote wakeup is generated
      *              - APP_USBD_EVT_START
      *              - APP_USBD_EVT_STOP
+     *              - APP_USBD_EVT_STATE_CHANGED
      */
     void (*ev_state_proc)(app_usbd_event_type_t event);
 
@@ -133,6 +145,16 @@ typedef struct {
      */
     bool enable_sof;
 } app_usbd_config_t;
+
+
+#if (APP_USBD_PROVIDE_SOF_TIMESTAMP) || defined(__SDK_DOXYGEN__)
+/**
+ * @brief Timestamp function for the logger.
+ *
+ * @return Current frame number taken directly from the last processed SOF.
+ */
+uint32_t app_usbd_sof_timestamp_get(void);
+#endif
 
 /**
  * @brief USB library initialization.
@@ -243,6 +265,16 @@ void app_usbd_suspend_req(void);
  * @retval false No wakeup would be generated becouse it is disabled by the host.
  */
 bool app_usbd_wakeup_req(void);
+
+/**
+ * @brief Get information whether there is an active connection.
+ *
+ * Function to check if the communication with the bus is possible.
+ *
+ * @retval true  The bus is active.
+ * @retval false There is no connection or bus is suspended.
+ */
+bool app_usbd_active_check(void);
 
 /**
  * @brief USBD event processor
@@ -415,34 +447,37 @@ const void * app_usbd_class_descriptor_find(app_usbd_class_inst_t const * const 
                                             size_t * p_desc_len);
 
 /**
- * @brief Standard interface request handle
+ * @brief Standard set interface request handle
  *
- * @param[in] p_setup_ev Setup event
+ * This function should be called when processing SET_INTERFACE request.
  *
- * @return Standard error code
- * */
-ret_code_t app_usbd_interface_std_req_handle(app_usbd_setup_evt_t  const * p_setup_ev);
-
-/**
- * @brief Standard endpoint request handle
- *
- * @param[in] p_setup_ev Setup event
+ * @param[in] p_cinst  Instance of a class
+ * @param[in] iface    Interface number
  *
  * @return Standard error code
+ *
+ * @note Selected interface to reset has to be part of given class.
+ *       In other case
  * */
-ret_code_t app_usbd_endpoint_std_req_handle(app_usbd_setup_evt_t const * p_setup_ev);
+ret_code_t app_usbd_interface_ep_reset(app_usbd_class_inst_t const * const p_cinst,
+                                       uint8_t iface);
 
 
 /**
- * @brief Standard interface set request handle
+ * @brief Enable selected endpoint
  *
- * @param[in] p_cinst    Instance of a class
- * @param[in] p_setup_ev Setup event
+ * Selected endpoint is enabled and cleared.
  *
- * @return Standard error code
- * */
-ret_code_t app_usbd_req_std_set_interface(app_usbd_class_inst_t const * const p_cinst,
-                                          app_usbd_setup_evt_t  const * const p_setup_ev);
+ * @param ep Endpoint number
+ */
+void app_usbd_ep_enable(nrf_drv_usbd_ep_t ep);
+
+/**
+ * @brief Disable selected endpoint
+ *
+ * @param ep Endpoint number
+ */
+void app_usbd_ep_disable(nrf_drv_usbd_ep_t ep);
 
 /**
  * @name Iterate through classes lists
@@ -507,6 +542,21 @@ ret_code_t app_usbd_req_std_set_interface(app_usbd_class_inst_t const * const p_
 /** @} */
 
 /**
+ * @brief Search for selected interface
+ *
+ * Function searches for the given interface number and returns the class that contains it.
+ * Optionally it can return interface index inside class instance.
+ *
+ * @param[in]  iface       Interface number
+ * @param[out] p_iface_idx Pointer to a variable that would hold interface index inside returned
+ *                         class instance.
+ *
+ * @return Pointer to the class structure that cointain given interface or NULL if not found.
+ */
+app_usbd_class_inst_t const * app_usbd_iface_find(uint8_t iface, uint8_t * p_iface_idx);
+
+
+/**
  * @name Communicate with interfaces, endpoints and instances inside usbd library
  *
  * @{
@@ -516,12 +566,16 @@ ret_code_t app_usbd_req_std_set_interface(app_usbd_class_inst_t const * const p_
      * @brief Call interface event handler
      *
      * Call event handler for selected interface.
-     * @param[in] iface   Target interface number
-     * @param[in] p_event Event structure to send
+     * @param[in,out] p_class_inst Class instance that holds selected interface
+     * @param[in]     iface_idx    Index of the interface in class structure
+     * @param[in]     p_event      Event structure to be processed
      *
      * @return Operation status
      */
-    ret_code_t app_usbd_iface_call(uint8_t iface, app_usbd_complex_evt_t const * const p_event);
+    ret_code_t app_usbd_iface_call(
+        app_usbd_class_inst_t const * const p_class_inst,
+        uint8_t iface_idx,
+        app_usbd_complex_evt_t const * const p_event);
 
     /**
      * @brief Call endpoint event handler
@@ -553,6 +607,109 @@ ret_code_t app_usbd_req_std_set_interface(app_usbd_class_inst_t const * const p_
      */
     ret_code_t app_usbd_all_until_served_call(app_usbd_complex_evt_t const * const p_event);
 /** @} */
+
+/**
+ * @brief Endpoint transfer
+ *
+ * @param ep         Endpoint number
+ * @param p_transfer Description of the transfer to be performed.
+ *                   The direction of the transfer is determined by the
+ *                   endpoint number.
+ *
+ * @retval NRF_ERROR_INVALID_STATE The state of the USB device does not allow
+ *                                 data transfer on the endpoint.
+ * @return Values returned by @ref nrf_drv_usbd_ep_transfer
+ *
+ * @sa app_usbd_ep_handled_transfer
+ */
+ret_code_t app_usbd_ep_transfer(
+    nrf_drv_usbd_ep_t                     ep,
+    nrf_drv_usbd_transfer_t const * const p_transfer);
+
+/**
+ * @brief Set up an endpoint handled transfer.
+ *
+ * Configures a transfer handled by the feedback function.
+ *
+ * @param ep        Endpoint number.
+ * @param p_handler Function called when the next chunk of data is requested.
+ *
+ * @retval NRF_ERROR_INVALID_STATE The state of the USB device does not allow
+ *                                 data transfer on the endpoint.
+ * @return Values returned by @ref nrf_drv_usbd_ep_handled_transfer.
+ */
+ret_code_t app_usbd_ep_handled_transfer(
+    nrf_drv_usbd_ep_t                         ep,
+    nrf_drv_usbd_handler_desc_t const * const p_handler);
+
+
+/**
+ * @brief Select interface
+ *
+ * Select the given interface.
+ * This function calls class interface selection function or default
+ * interface selection function.
+ *
+ * After calling this function interface should be functional.
+ *
+ * @param[in,out] p_inst    Instance of the class
+ * @param[in]     iface_idx Index of the interface inside class structure
+ * @param[in]     alternate Alternate setting that should be selected
+ *
+ * @return Standard Error code
+ */
+ret_code_t app_usbd_iface_select(
+    app_usbd_class_inst_t const * const p_inst,
+    uint8_t                             iface_idx,
+    uint8_t                             alternate);
+
+
+/**
+ * @brief Deselect interface
+ *
+ * Disable the given interface.
+ * This function calls class interface deselection function or
+ * default interface selection function.
+ *
+ * After calling this function all the endpoints from the interface
+ * have to be disabled.
+ *
+ * @param[in,out] p_inst    Instance of the class
+ * @param[in]     iface_idx Index of the interface inside class structure
+ */
+void app_usbd_iface_deselect(
+    app_usbd_class_inst_t const * const p_inst,
+    uint8_t                             iface_idx);
+
+/**
+ * @brief Get selected interface
+ *
+ * Function retieves currently selected interface.
+ * If the class contains @ref app_usbd_class_methods_t::iface_selection_get it is called.
+ * It it does not contain this function this function would return default, 0 value.
+ *
+ * @param[in] p_inst    Instance of the class
+ * @param[in] iface_idx Index of the interface inside class structure
+ *
+ * @return Selected alternate interface setting
+ */
+uint8_t app_usbd_iface_selection_get(
+    app_usbd_class_inst_t const * const p_inst,
+    uint8_t                             iface_idx);
+
+/**
+ * @brief Select alternate configuration 0 for all interfaces
+ *
+ * Auxiliary function that clears settings for all interfaces leaving them enabled.
+ */
+void app_usbd_all_iface_select_0(void);
+
+/**
+ * @brief Deselect all interfaces
+ *
+ * Auxiliary function to disable all interfaces.
+ */
+void app_usbd_all_iface_deselect(void);
 
 /** @} */
 

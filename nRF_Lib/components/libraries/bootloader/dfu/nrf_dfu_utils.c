@@ -50,6 +50,7 @@
 #include "app_timer.h"
 #include "nrf_delay.h"
 
+
 static app_timer_t nrf_dfu_post_sd_bl_timeout_timer = { {0} };
 const app_timer_id_t nrf_dfu_post_sd_bl_timeout_timer_id = &nrf_dfu_post_sd_bl_timeout_timer;
 
@@ -243,6 +244,9 @@ static uint32_t nrf_dfu_sd_continue_impl(uint32_t             src_addr,
     {
         NRF_LOG_DEBUG("Updating SD. Old SD ver: %d, New ver: %d",
             SD_VERSION_GET(MBR_SIZE) / 100000, SD_VERSION_GET(src_addr) / 100000);
+        
+        // Save the absolute address of SD in case SD/SD+BL update.
+        s_dfu_settings.progress.sd_start_address = src_addr;
     }
 
     do
@@ -318,6 +322,13 @@ static uint32_t nrf_dfu_sd_continue(uint32_t             src_addr,
                                     nrf_dfu_bank_t     * p_bank)
 {
     uint32_t ret_val;
+    
+    // If the continuation is after a power loss, SoftDevice may already have started to be copied.
+    // In this case, use the absolute value of the SoftDevice start address to ensure correct copy.
+    if (s_dfu_settings.progress.sd_start_address != 0)
+    {
+        src_addr = s_dfu_settings.progress.sd_start_address;
+    }
 
     ret_val = nrf_dfu_sd_continue_impl(src_addr, p_bank);
     if (ret_val != NRF_SUCCESS)
@@ -356,16 +367,30 @@ static uint32_t nrf_dfu_sd_continue(uint32_t             src_addr,
  */
 static uint32_t nrf_dfu_bl_continue(uint32_t src_addr, nrf_dfu_bank_t * p_bank)
 {
-    uint32_t        ret_val     = NRF_SUCCESS;
+    uint32_t        ret_val     = NRF_ERROR_NULL;
     uint32_t const  len         = (p_bank->image_size - s_dfu_settings.sd_size);
 
-    // if the update is a combination of BL + SD, offset with SD size to get BL start address
-    src_addr += s_dfu_settings.sd_size;
+    NRF_LOG_DEBUG("Verifying BL: Addr: 0x%08x, Src: 0x%08x, Len: 0x%08x", BOOTLOADER_START_ADDR, src_addr, len);
+    
+#if NRF_DFU_WORKAROUND_PRE_SDK_14_1_0_SD_BL_UPDATE    
+    // This code is a configurable workaround for updating SD+BL from SDK 12.x.y - 14.1.0
+    // SoftDevice size increase would lead to unaligned source address when comparing new BL in SD+BL updates.
+    // This workaround is not required once BL is successfully installed with a version that is compiled SDK 14.1.0
+#if defined(NRF52832_XXAA)
+    if (p_bank->bank_code == NRF_DFU_BANK_VALID_SD_BL)
+    {
+        ret_val = nrf_dfu_mbr_compare((uint32_t*)BOOTLOADER_START_ADDR, (uint32_t*)(src_addr - 0x4000), len);
+    }
+#endif // defined(NRF52832_XXAA)
+#endif // #if NRF_DFU_WORKAROUND_PRE_SDK_14_1_0_SD_BL_UPDATE
 
-    NRF_LOG_DEBUG("Verifying BL: Addr: 0x%08x, Src: 0x%08x, Len: 0x%08x", MAIN_APPLICATION_START_ADDR, src_addr, len);
-
+    // Check if the BL has already been copied.
+    if (ret_val != NRF_SUCCESS)
+    {
+        ret_val = nrf_dfu_mbr_compare((uint32_t*)BOOTLOADER_START_ADDR, (uint32_t*)src_addr, len);
+    }
+    
     // If the bootloader is the same as the banked version, the copy is finished
-    ret_val = nrf_dfu_mbr_compare((uint32_t*)BOOTLOADER_START_ADDR, (uint32_t*)src_addr, len);
     if (ret_val == NRF_SUCCESS)
     {
         NRF_LOG_DEBUG("Bootloader was verified");
@@ -416,13 +441,22 @@ static uint32_t nrf_dfu_sd_bl_continue(uint32_t src_addr, nrf_dfu_bank_t * p_ban
 
     NRF_LOG_DEBUG("Enter nrf_dfu_sd_bl_continue");
 
+    // If the continuation is after a power loss, SoftDevice may already have started to be copied.
+    // In this case, use the absolute value of the SoftDevice start address to ensure correct copy.
+    if (s_dfu_settings.progress.sd_start_address != 0)
+    {
+        src_addr = s_dfu_settings.progress.sd_start_address;
+    }
+    
     ret_val = nrf_dfu_sd_continue_impl(src_addr, p_bank);
     if (ret_val != NRF_SUCCESS)
     {
         NRF_LOG_ERROR("SD+BL: SD copy failed");
         return ret_val;
     }
-
+    
+    src_addr += s_dfu_settings.sd_size;
+    
     ret_val = nrf_dfu_bl_continue(src_addr, p_bank);
     if (ret_val != NRF_SUCCESS)
     {

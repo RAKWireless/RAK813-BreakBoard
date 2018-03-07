@@ -83,7 +83,7 @@ typedef struct
     nrf_log_backend_t *       p_backend_head;
     nrf_atomic_flag_t         log_skipping;
     nrf_atomic_flag_t         log_skipped;
-    bool                      panic;
+    bool                      autoflush;
 } log_data_t;
 
 static log_data_t   m_log_data;
@@ -117,7 +117,7 @@ ret_code_t nrf_log_init(nrf_log_timestamp_func_t timestamp_func)
     m_log_data.rd_idx       = 0;
     m_log_data.log_skipped  = 0;
     m_log_data.log_skipping = 0;
-    m_log_data.panic        = false;
+    m_log_data.autoflush    = NRF_LOG_DEFERRED ? false : true;
     if (NRF_LOG_USES_TIMESTAMP)
     {
         m_log_data.timestamp_func = timestamp_func;
@@ -177,9 +177,9 @@ uint32_t nrf_log_module_cnt_get(void)
 
 static ret_code_t module_idx_get(uint32_t * p_idx, bool ordered_idx)
 {
-    uint32_t module_cnt = nrf_log_module_cnt_get();
     if (ordered_idx)
     {
+        uint32_t module_cnt = nrf_log_module_cnt_get();
         uint32_t i;
         for (i = 0; i < module_cnt; i++)
         {
@@ -299,13 +299,14 @@ nrf_log_severity_t nrf_log_module_filter_get(uint32_t backend_id,
 
 static void log_skip(void)
 {
+    (void)nrf_atomic_flag_set(&m_log_data.log_skipped);
+    (void)nrf_atomic_flag_set(&m_log_data.log_skipping);
+
     uint32_t           rd_idx = m_log_data.rd_idx;
     uint32_t           mask   = m_log_data.mask;
     nrf_log_header_t * p_header = (nrf_log_header_t *)&m_log_data.buffer[rd_idx & mask];
     nrf_log_header_t   header;
 
-    (void)nrf_atomic_flag_set(&m_log_data.log_skipped);
-    (void)nrf_atomic_flag_set(&m_log_data.log_skipping);
     // Skip any string that is pushed to the circular buffer.
     while (p_header->base.generic.type == HEADER_TYPE_PUSHED)
     {
@@ -320,13 +321,17 @@ static void log_skip(void)
         ((uint32_t*)&header)[i] = m_log_data.buffer[rd_idx++ & mask];
     }
 
-    if (header.base.generic.type == HEADER_TYPE_HEXDUMP)
+    switch (header.base.generic.type)
     {
-        rd_idx += CEIL_DIV(header.base.hexdump.len, 4);
-    }
-    else //HEADER_TYPE_STD
-    {
-        rd_idx += header.base.std.nargs;
+        case HEADER_TYPE_HEXDUMP:
+            rd_idx += CEIL_DIV(header.base.hexdump.len, sizeof(uint32_t));
+            break;
+        case HEADER_TYPE_STD:
+            rd_idx += header.base.std.nargs;
+            break;
+        default:
+            ASSERT(false);
+            break;
     }
 
     uint32_t log_skipping_tmp = nrf_atomic_flag_clear_fetch(&m_log_data.log_skipping);
@@ -338,28 +343,30 @@ static void log_skip(void)
 }
 
 
-static inline uint32_t std_header_set(uint32_t severity_mid,
+static inline void std_header_set(uint32_t severity_mid,
                                       char const * const p_str,
                                       uint32_t nargs,
                                       uint32_t wr_idx,
                                       uint32_t mask)
 {
 
-    nrf_log_header_t * p_header = (nrf_log_header_t *)&m_log_data.buffer[wr_idx++ & mask];
-    p_header->base.std.type = HEADER_TYPE_STD;
+
+    //Prepare header - in reverse order to ensure that packet type is validated (set to STD as last action)
+    uint16_t module_id = severity_mid >> NRF_LOG_MODULE_ID_POS;
+    ASSERT(module_id < nrf_log_module_cnt_get());
+    m_log_data.buffer[(wr_idx + 1) & mask] = module_id;
+
+    if (NRF_LOG_USES_TIMESTAMP)
+    {
+        m_log_data.buffer[(wr_idx + 2) & mask] = m_log_data.timestamp_func();
+    }
+
+    nrf_log_header_t * p_header = (nrf_log_header_t *)&m_log_data.buffer[wr_idx & mask];
     p_header->base.std.raw      = (severity_mid & NRF_LOG_RAW) ? 1 : 0;
     p_header->base.std.severity = severity_mid & NRF_LOG_LEVEL_MASK;
     p_header->base.std.nargs    = nargs;
     p_header->base.std.addr     = ((uint32_t)(p_str) & STD_ADDR_MASK);
-
-    m_log_data.buffer[wr_idx++ & mask] = severity_mid >> NRF_LOG_MODULE_ID_POS;
-
-    if (NRF_LOG_USES_TIMESTAMP)
-    {
-        m_log_data.buffer[wr_idx++ & mask] = m_log_data.timestamp_func();
-    }
-
-    return wr_idx;
+    p_header->base.std.type     = HEADER_TYPE_STD;
 }
 
 /**
@@ -394,18 +401,23 @@ static inline bool buf_prealloc(uint32_t content_len, uint32_t * p_wr_idx)
             if (available_words >= HEADER_SIZE)
             {
                 // Overflow entry is injected
-                (void)std_header_set(NRF_LOG_LEVEL_WARNING, m_overflow_info, 0, m_log_data.wr_idx, m_log_data.mask);
+                std_header_set(NRF_LOG_LEVEL_WARNING, m_overflow_info, 0, m_log_data.wr_idx, m_log_data.mask);
                 req_len = HEADER_SIZE;
             }
             else
             {
-                // overflow case
-                ret = false;
+                // No more room for any logs.
+                req_len = 0;
             }
+            ret = false;
             break;
         }
 
     }
+    /* Mark header as invalid.*/
+    nrf_log_generic_header_t * p_header = (nrf_log_generic_header_t *)&m_log_data.buffer[m_log_data.wr_idx & m_log_data.mask];
+    p_header->type = HEADER_TYPE_INVALID;
+
     m_log_data.wr_idx += req_len;
 
     CRITICAL_REGION_EXIT();
@@ -438,7 +450,7 @@ static inline uint32_t * cont_buf_prealloc(uint32_t len32,
     CRITICAL_REGION_ENTER();
     *p_wr_idx = m_log_data.wr_idx;
     uint32_t available_words = (m_log_data.mask + 1) -
-                               (m_log_data.wr_idx & m_log_data.mask);
+                                (m_log_data.wr_idx - m_log_data.rd_idx);
     if (len32 <= available_words)
     {
         // buffer will fit as is
@@ -467,14 +479,14 @@ static inline uint32_t * cont_buf_prealloc(uint32_t len32,
 
 uint32_t nrf_log_push(char * const p_str)
 {
-    if ((NRF_LOG_DEFERRED == 0) || (p_str == NULL) || m_log_data.panic)
+    if ((m_log_data.autoflush) || (p_str == NULL))
     {
         return (uint32_t)p_str;
     }
 
     uint32_t mask      = m_log_data.mask;
     uint32_t slen      = strlen(p_str) + 1;
-    uint32_t buflen    = CEIL_DIV(slen, 4);
+    uint32_t buflen    = CEIL_DIV(slen, sizeof(uint32_t));
     uint32_t offset    = 0;
     uint32_t wr_idx;
     char   * p_dst_str = (char *)cont_buf_prealloc(buflen, &offset, &wr_idx);
@@ -492,23 +504,19 @@ static inline void std_n(uint32_t severity_mid, char const * const p_str, uint32
     uint32_t mask   = m_log_data.mask;
     uint32_t wr_idx;
 
-    if (m_log_data.panic)
-    {
-        return;
-    }
-
     if (buf_prealloc(nargs, &wr_idx))
     {
         // Proceed only if buffer was successfully preallocated.
-        wr_idx = std_header_set(severity_mid, p_str, nargs, wr_idx, mask);
 
+        uint32_t data_idx = wr_idx + HEADER_SIZE;
         uint32_t i;
         for (i = 0; i < nargs; i++)
         {
-            m_log_data.buffer[wr_idx++ & mask] =args[i];
+            m_log_data.buffer[data_idx++ & mask] =args[i];
         }
+        std_header_set(severity_mid, p_str, nargs, wr_idx, mask);
     }
-    if (NRF_LOG_DEFERRED == 0)
+    if (m_log_data.autoflush)
     {
         NRF_LOG_FLUSH();
     }
@@ -594,31 +602,13 @@ void nrf_log_frontend_hexdump(uint32_t           severity_mid,
                               const void * const p_data,
                               uint16_t           length)
 {
-    if (m_log_data.panic)
-    {
-        return;
-    }
-
     uint32_t mask   = m_log_data.mask;
 
     uint32_t wr_idx;
-    if (buf_prealloc(CEIL_DIV(length, 4), &wr_idx))
+    if (buf_prealloc(CEIL_DIV(length, sizeof(uint32_t)), &wr_idx))
     {
-        //Header prepare
-        nrf_log_header_t * p_header = (nrf_log_header_t *)&m_log_data.buffer[wr_idx++ & mask];
-        p_header->base.hexdump.type     = HEADER_TYPE_HEXDUMP;
-        p_header->base.hexdump.raw      = (severity_mid & NRF_LOG_RAW) ? 1 : 0;
-        p_header->base.hexdump.severity = severity_mid & NRF_LOG_LEVEL_MASK;
-        p_header->base.hexdump.offset   = 0;
-        p_header->base.hexdump.len      = length;
-
-        m_log_data.buffer[wr_idx++ & mask] = severity_mid >> NRF_LOG_MODULE_ID_POS;
-
-
-        if (NRF_LOG_USES_TIMESTAMP)
-        {
-           m_log_data.buffer[wr_idx++ & mask] = m_log_data.timestamp_func();
-        }
+        uint32_t header_wr_idx = wr_idx;
+        wr_idx += HEADER_SIZE;
 
         uint32_t space0 = sizeof(uint32_t) * (m_log_data.mask + 1 - (wr_idx & mask));
         if (length <= space0)
@@ -631,9 +621,27 @@ void nrf_log_frontend_hexdump(uint32_t           severity_mid,
             length -= space0;
             memcpy(&m_log_data.buffer[0], &((uint8_t *)p_data)[space0], length);
         }
+
+        //Prepare header - in reverse order to ensure that packet type is validated (set to HEXDUMP as last action)
+        if (NRF_LOG_USES_TIMESTAMP)
+        {
+           m_log_data.buffer[(header_wr_idx + 2) & mask] = m_log_data.timestamp_func();
+        }
+
+        m_log_data.buffer[(header_wr_idx + 1) & mask] = severity_mid >> NRF_LOG_MODULE_ID_POS;
+        //Header prepare
+        nrf_log_header_t * p_header = (nrf_log_header_t *)&m_log_data.buffer[header_wr_idx & mask];
+        p_header->base.hexdump.raw      = (severity_mid & NRF_LOG_RAW) ? 1 : 0;
+        p_header->base.hexdump.severity = severity_mid & NRF_LOG_LEVEL_MASK;
+        p_header->base.hexdump.offset   = 0;
+        p_header->base.hexdump.len      = length;
+        p_header->base.hexdump.type     = HEADER_TYPE_HEXDUMP;
+
+
+
     }
 
-    if (NRF_LOG_DEFERRED == 0)
+    if (m_log_data.autoflush)
     {
         NRF_LOG_FLUSH();
     }
@@ -652,14 +660,16 @@ bool nrf_log_frontend_dequeue(void)
     {
         return false;
     }
-    m_log_data.log_skipping     = 0;
+    m_log_data.log_skipped      = 0;
+    //It has to be ensured that reading rd_idx occurs after skipped flag is cleared.
+    __DSB();
     uint32_t           rd_idx   = m_log_data.rd_idx;
     uint32_t           mask     = m_log_data.mask;
     nrf_log_header_t * p_header = (nrf_log_header_t *)&m_log_data.buffer[rd_idx & mask];
     nrf_log_header_t   header;
-    nrf_memobj_t *     p_msg_buf;
+    nrf_memobj_t *     p_msg_buf = NULL;
     uint32_t           memobj_offset = 0;
-    uint32_t           severity;
+    uint32_t           severity = 0;
 
     // Skip any string that is pushed to the circular buffer.
     while (p_header->base.generic.type == HEADER_TYPE_PUSHED)
@@ -716,11 +726,12 @@ bool nrf_log_frontend_dequeue(void)
             rd_idx += CEIL_DIV(orig_data_len, 4);
         }
     }
-    else // standard entry
+    else if (header.base.generic.type == HEADER_TYPE_STD) // standard entry
     {
         header.base.std.nargs = MIN(header.base.std.nargs, NRF_LOG_MAX_NUM_OF_ARGS);
         uint32_t msg_buf_size32 = HEADER_SIZE + header.base.std.nargs;
         severity = header.base.std.severity;
+
         p_msg_buf = nrf_memobj_alloc(&mempool, msg_buf_size32*sizeof(uint32_t));
 
         if (p_msg_buf)
@@ -737,43 +748,78 @@ bool nrf_log_frontend_dequeue(void)
             }
         }
     }
+    else if (header.base.generic.type == HEADER_TYPE_INVALID && (m_log_data.log_skipped == 0))
+    {
+        //invalid type can only occur if log entry was interrupted by log_process. It is likly final flush
+        // and finding invalid type means that last entry in the buffer was reached (the one that was interrupted).
+        // Stop processing immediately.
+        return false;
+    }
+    else
+    {
+        //Do nothing. In case of log overflow buffer can contain corrupted data.
+    }
+
     if (p_msg_buf)
     {
-        // Check if any log was skipped during log processing. Do not forward log if skipping occured
-        // because data may be invalid.
-        uint32_t skipping = nrf_atomic_flag_clear_fetch(&m_log_data.log_skipping);
         nrf_log_backend_t * p_backend = m_log_data.p_backend_head;
-         while (p_backend && (skipping == 0))
-         {
-             bool entry_accepted = false;
-             if (nrf_log_backend_is_enabled(p_backend) == true)
-             {
-                 if (NRF_LOG_FILTERS_ENABLED)
-                 {
-                     uint8_t backend_id = nrf_log_backend_id_get(p_backend);
-                     uint32_t filter_lvls = NRF_LOG_DYNAMIC_SECTION_VARS_GET(header.module_id)->filter_lvls;
-                     uint32_t backend_lvl = (filter_lvls >> (backend_id*NRF_LOG_LEVEL_BITS))
-                                             & NRF_LOG_LEVEL_MASK;
-                     if (backend_lvl >= severity)
-                     {
-                         entry_accepted = true;
-                     }
-                 }
-                 else
-                 {
-                     (void)severity;
-                     entry_accepted = true;
-                 }
-             }
-             if (entry_accepted)
-             {
+        if (NRF_LOG_ALLOW_OVERFLOW && m_log_data.log_skipped)
+        {
+            // Check if any log was skipped during log processing. Do not forward log if skipping 
+            // occured because data may be invalid.
+            nrf_memobj_put(p_msg_buf);
+        }
+        else
+        {
+            while (p_backend)
+            {
+                bool entry_accepted = false;
+                if (nrf_log_backend_is_enabled(p_backend) == true)
+                {
+                    if (NRF_LOG_FILTERS_ENABLED)
+                    {
+                        uint8_t backend_id = nrf_log_backend_id_get(p_backend);
+                        uint32_t filter_lvls = NRF_LOG_DYNAMIC_SECTION_VARS_GET(header.module_id)->filter_lvls;
+                        uint32_t backend_lvl = (filter_lvls >> (backend_id*NRF_LOG_LEVEL_BITS))
+                                                & NRF_LOG_LEVEL_MASK;
+                        if (backend_lvl >= severity)
+                        {
+                            entry_accepted = true;
+                        }
+                    }
+                    else
+                    {
+                        (void)severity;
+                        entry_accepted = true;
+                    }
+                }
+                if (entry_accepted)
+                {
                  nrf_log_backend_put(p_backend, p_msg_buf);
-             }
-             p_backend = p_backend->p_next;
-         }
+                }
+                p_backend = p_backend->p_next;
+            }
 
-         nrf_memobj_put(p_msg_buf);
-         m_log_data.rd_idx = rd_idx;
+            nrf_memobj_put(p_msg_buf);
+
+            if (NRF_LOG_ALLOW_OVERFLOW)
+            {
+                // Read index can be moved forward only if dequeueing process was not interrupt by
+                // skipping procedure. If NRF_LOG_ALLOW_OVERFLOW is set then in case of buffer gets full
+                // and new logger entry occurs, oldest entry is removed. In that case read index is
+                // changed and updating it here would corrupt the internal circular buffer.
+                CRITICAL_REGION_ENTER();
+                if (m_log_data.log_skipped == 0)
+                {
+                    m_log_data.rd_idx = rd_idx;
+                }
+                CRITICAL_REGION_EXIT();
+            }
+            else
+            {
+                m_log_data.rd_idx = rd_idx;
+            }
+        }
     }
 
     return buffer_is_empty() ? false : true;
@@ -826,12 +872,15 @@ int32_t nrf_log_backend_add(nrf_log_backend_t * p_backend, nrf_log_severity_t se
         m_log_data.p_backend_head->p_next = p_backend;
     }
 
-    uint32_t i;
-    for (i = 0; i < nrf_log_module_cnt_get(); i++)
+    if (NRF_LOG_FILTERS_ENABLED)
     {
-        nrf_log_severity_t buildin_lvl = nrf_log_module_filter_get(id, i, false, false);
-        nrf_log_severity_t actual_severity = MIN(buildin_lvl, severity);
-        nrf_log_module_filter_set(nrf_log_backend_id_get(p_backend), i, actual_severity);
+        uint32_t i;
+        for (i = 0; i < nrf_log_module_cnt_get(); i++)
+        {
+            nrf_log_severity_t buildin_lvl = nrf_log_module_filter_get(id, i, false, false);
+            nrf_log_severity_t actual_severity = MIN(buildin_lvl, severity);
+            nrf_log_module_filter_set(nrf_log_backend_id_get(p_backend), i, actual_severity);
+        }
     }
 
     return id;
@@ -860,7 +909,7 @@ void nrf_log_backend_remove(nrf_log_backend_t * p_backend)
 void nrf_log_panic(void)
 {
     nrf_log_backend_t * p_backend = m_log_data.p_backend_head;
-    m_log_data.panic = true;
+    m_log_data.autoflush = true;
     while (p_backend)
     {
         nrf_log_backend_enable(p_backend);
@@ -887,7 +936,6 @@ static const char * m_severity_lvls_sorted[] = {
         "none",
         "warning",
 };
-
 
 static void log_status(nrf_cli_t const * p_cli, size_t argc, char **argv)
 {
@@ -959,6 +1007,12 @@ static void log_ctrl(nrf_cli_t const * p_cli, size_t argc, char **argv)
     {
         if (strncmp(argv[0], "enable", 7) == 0)
         {
+            if (argc == 1)
+            {
+                nrf_cli_fprintf(p_cli, NRF_CLI_ERROR, "Bad parameter count.\r\n");
+                return;
+            }
+
             if (argc == 2)
             {
                 all_modules = true;

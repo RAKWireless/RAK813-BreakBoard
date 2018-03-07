@@ -207,11 +207,6 @@ typedef struct
     {
         struct
         {
-            /* Currently not used. */
-            uint16_t pages_not_mounted;
-        } init;
-        struct
-        {
             uint32_t record_id;
             uint16_t file_id;
             uint16_t record_key;
@@ -222,14 +217,7 @@ typedef struct
             uint32_t record_id;
             uint16_t file_id;
             uint16_t record_key;
-            uint16_t records_deleted_count;
         } del; //!< Information for @ref FDS_EVT_DEL_RECORD and @ref FDS_EVT_DEL_FILE events.
-        struct
-        {
-            /* Currently not used. */
-            uint16_t pages_skipped;
-            uint16_t space_reclaimed;
-        } gc;
     };
 } fds_evt_t;
 
@@ -239,13 +227,13 @@ ANON_UNIONS_DISABLE
 /**@brief   File system statistics. */
 typedef struct
 {
+    uint16_t pages_available;   //!< The number of pages available.
     uint16_t open_records;      //!< The number of open records.
     uint16_t valid_records;     //!< The number of valid records.
     uint16_t dirty_records;     //!< The number of deleted ("dirty") records.
     uint16_t words_reserved;    //!< The number of words reserved by @ref fds_reserve().
 
-    /**@brief The number of words written to flash, including those reserved for future writes.
-     */
+    /**@brief The number of words written to flash, including those reserved for future writes. */
     uint16_t words_used;
 
     /**@brief The largest number of free contiguous words in the file system.
@@ -261,6 +249,15 @@ typedef struct
      * records are open while garbage collection is run.
      */
     uint16_t freeable_words;
+
+    /**@brief Filesystem corruption has been detected.
+     *
+     * One or more corrupted records were detected. FDS will heal the filesystem automatically
+     * next time garbage collection is run, but some data may be lost.
+     *
+     * @note: This flag is unrelated to CRC failures.
+     */
+    bool corruption;
 } fds_stat_t;
 
 

@@ -385,6 +385,13 @@ size_t nrf_queue_available_get(nrf_queue_t const * p_queue);
  */
 size_t nrf_queue_max_utilization_get(nrf_queue_t const * p_queue);
 
+/**@brief Function for resetting the maximal queue utilization.
+ *
+ * @param[in]   p_queue     Pointer to the queue instance.
+ *
+ */
+void nrf_queue_max_utilization_reset(nrf_queue_t const * p_queue);
+
 /**@brief Function for resetting the queue state.
  *
  * @param[in]   p_queue     Pointer to the queue instance.

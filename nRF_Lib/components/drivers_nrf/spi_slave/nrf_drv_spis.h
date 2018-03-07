@@ -61,6 +61,26 @@
 extern "C" {
 #endif
 
+#ifdef SPIS0_ENABLED
+#define SPIS0_INCR SPIS0_ENABLED
+#else
+#define SPIS0_INCR 0
+#endif
+
+#ifdef SPIS1_ENABLED
+#define SPIS1_INCR SPIS1_ENABLED
+#else
+#define SPIS1_INCR 0
+#endif
+
+#ifdef SPIS2_ENABLED
+#define SPIS2_INCR SPIS2_ENABLED
+#else
+#define SPIS2_INCR 0
+#endif
+
+#define ENABLED_SPIS_COUNT (SPIS0_INCR + SPIS1_INCR + SPIS2_INCR)
+
 #ifdef NRF52810_XXAA
     #define SPIS0_IRQ            SPIM0_SPIS0_IRQn
     #define SPIS0_IRQ_HANDLER    SPIM0_SPIS0_IRQHandler

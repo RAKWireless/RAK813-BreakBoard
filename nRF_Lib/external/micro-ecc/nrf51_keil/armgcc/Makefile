@@ -67,9 +67,10 @@ default: micro_ecc_lib
 # Print all targets that can be built
 help:
 	@echo following targets are available:
-	@echo 	micro_ecc_lib
+	@echo		micro_ecc_lib
 
 TEMPLATE_PATH := $(SDK_ROOT)/components/toolchain/gcc
+
 
 include $(TEMPLATE_PATH)/Makefile.common
 
@@ -82,3 +83,8 @@ $(NO_ECHO)$(AR) $($@) $^
 endef
 micro_ecc_lib:
 	$(create_library)
+
+SDK_CONFIG_FILE := ../config/sdk_config.h
+CMSIS_CONFIG_TOOL := $(SDK_ROOT)/external_tools/cmsisconfig/CMSIS_Configuration_Wizard.jar
+sdk_config:
+	java -jar $(CMSIS_CONFIG_TOOL) $(SDK_CONFIG_FILE)

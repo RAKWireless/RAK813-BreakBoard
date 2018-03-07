@@ -193,10 +193,10 @@ ret_code_t nfc_ble_pair_default_msg_encode(nfc_ble_pair_type_t             nfc_b
 /** @brief Function for encoding any type of BLE pairing messages with default BLE
  *         advertising data structures and with TK modifier feature.
  *
- *         This function is very similar to @ref nfc_ble_pair_default_msg_encode function, but
- *         additionaly it enables to track TK locations which were encoded in Connection Handover
- *         NDEF message. After using this function, you can update TK value in NDEF by calling
- *         @ref nfc_tk_group_modifier_update.
+ * This function is very similar to the @ref nfc_ble_pair_default_msg_encode function, but
+ * additionaly enables tracking of TK locations which were encoded in the Connection Handover
+ * NDEF message. After using this function, you can update the TK value in NDEF by calling
+ * @ref nfc_tk_group_modifier_update.
  *
  * @param[in]       nfc_ble_pair_type   Type of BLE pairing message.
  * @param[in]       p_tk_value          Pointer to the authentication Temporary Key (TK). If NULL,
@@ -250,13 +250,13 @@ ret_code_t nfc_tk_to_group_add(uint8_t * p_tk_location);
  *
  * @details Updates LESC Confirmation and Random Values based on its locations set by the @ref nfc_lesc_pos_set function.
  *
- * @param[in]  ble_lesc_oob_data        Pointer to the new LESC OOB data. The NDEF message will be updated with this data.
+ * @param[in]  p_ble_lesc_oob_data      Pointer to the new LESC OOB data. The NDEF message will be updated with this data.
  *
  * @retval     NRF_SUCCESS              If the operation was successful.
  * @retval     NRF_ERROR_NULL           If pointer to the new LESC OOB data is NULL.
  * @retval     NRF_ERROR_INVALID_STATE  If pointer to the LESC OOB data location in NDEF message is NULL.
  */
-ret_code_t nfc_lesc_data_update(ble_gap_lesc_oob_data_t * ble_lesc_oob_data);
+ret_code_t nfc_lesc_data_update(ble_gap_lesc_oob_data_t * p_ble_lesc_oob_data);
 
 /**@brief Function for storing pointers to the LESC OOB data inside NDEF message.
  *

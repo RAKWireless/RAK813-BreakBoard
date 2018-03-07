@@ -142,8 +142,8 @@ static inline void write_data(uint8_t c)
 
 static void set_addr_window(uint16_t x_0, uint16_t y_0, uint16_t x_1, uint16_t y_1)
 {
-    ASSERT(x_0 < x_1);
-    ASSERT(y_0 < y_1);
+    ASSERT(x_0 <= x_1);
+    ASSERT(y_0 <= y_1);
 
     write_command(ILI9341_CASET);
     write_data(x_0 >> 8);

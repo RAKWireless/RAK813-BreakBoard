@@ -189,7 +189,7 @@ static ret_code_t cbw_wait_start(app_usbd_class_inst_t const * p_inst)
     NRF_LOG_DEBUG("cbw_wait_start");
     memset(&p_msc_ctx->cbw, 0, sizeof(app_usbd_msc_cbw_t));
     NRF_DRV_USBD_TRANSFER_OUT(cbw, &p_msc_ctx->cbw, sizeof(app_usbd_msc_cbw_t));
-    ret_code_t ret = app_usbd_core_ep_transfer(ep_addr_out, &cbw);
+    ret_code_t ret = app_usbd_ep_transfer(ep_addr_out, &cbw);
     if (ret == NRF_SUCCESS)
     {
         p_msc_ctx->state = APP_USBD_MSC_STATE_CBW;
@@ -220,7 +220,7 @@ static ret_code_t csw_wait_start(app_usbd_class_inst_t const * p_inst, uint8_t s
     p_msc_ctx->csw.status = status;
 
     NRF_DRV_USBD_TRANSFER_IN(csw, &p_msc_ctx->csw, sizeof(app_usbd_msc_csw_t));
-    ret_code_t ret = app_usbd_core_ep_transfer(ep_addr_in, &csw);
+    ret_code_t ret = app_usbd_ep_transfer(ep_addr_in, &csw);
     if (ret == NRF_SUCCESS)
     {
         p_msc_ctx->state = APP_USBD_MSC_STATE_CSW;
@@ -252,7 +252,7 @@ static ret_code_t transfer_in_start(app_usbd_class_inst_t const * p_inst,
     nrf_drv_usbd_ep_t ep_addr_in = ep_in_addr_get(p_inst);
 
     NRF_DRV_USBD_TRANSFER_IN(resp, p_buff, size);
-    ret_code_t ret = app_usbd_core_ep_transfer(ep_addr_in, &resp);
+    ret_code_t ret = app_usbd_ep_transfer(ep_addr_in, &resp);
     if (ret == NRF_SUCCESS)
     {
         p_msc_ctx->state = state;
@@ -271,8 +271,8 @@ static void bulk_ep_reset(app_usbd_class_inst_t const * p_inst)
     nrf_drv_usbd_ep_t ep_addr_in  = ep_in_addr_get(p_inst);
     nrf_drv_usbd_ep_t ep_addr_out = ep_out_addr_get(p_inst);
 
-    usbd_drv_ep_abort(ep_addr_in);
-    usbd_drv_ep_abort(ep_addr_out);
+    nrf_drv_usbd_ep_abort(ep_addr_in);
+    nrf_drv_usbd_ep_abort(ep_addr_out);
 }
 
 
@@ -298,7 +298,7 @@ static ret_code_t transfer_out_start(app_usbd_class_inst_t const * p_inst,
     nrf_drv_usbd_ep_t ep_addr_out = ep_out_addr_get(p_inst);
 
     NRF_DRV_USBD_TRANSFER_OUT(resp, p_buff, size);
-    ret_code_t ret = app_usbd_core_ep_transfer(ep_addr_out, &resp);
+    ret_code_t ret = app_usbd_ep_transfer(ep_addr_out, &resp);
     if (ret == NRF_SUCCESS)
     {
         p_msc_ctx->state = state;
@@ -307,27 +307,94 @@ static ret_code_t transfer_out_start(app_usbd_class_inst_t const * p_inst,
 }
 
 /**
+ * @brief Generic function to stall communication endpoints and mark error state
+ *
+ * Function used internally to stall all communication endpoints and mark current state.
+ *
+ * @param p_inst Generic class instance
+ * @param state  State to set
+ */
+static void status_generic_error_stall(app_usbd_class_inst_t const * p_inst, app_usbd_msc_state_t state)
+{
+    app_usbd_msc_t const * p_msc     = msc_get(p_inst);
+    app_usbd_msc_ctx_t *   p_msc_ctx = msc_ctx_get(p_msc);
+
+    nrf_drv_usbd_ep_t ep_in  = ep_in_addr_get(p_inst);
+    nrf_drv_usbd_ep_t ep_out = ep_out_addr_get(p_inst);
+
+    nrf_drv_usbd_ep_stall(ep_in);
+    nrf_drv_usbd_ep_stall(ep_out);
+    nrf_drv_usbd_ep_abort(ep_in);
+    nrf_drv_usbd_ep_abort(ep_out);
+
+    p_msc_ctx->state = state;
+}
+/**
  * @brief Start status stage of unsupported SCSI command
  *
- * @param[in] p_inst    Generic class instance
+ * @param[in,out] p_inst    Generic class instance
  *
  * @return Standard error code
- * */
-static ret_code_t unsupported_start(app_usbd_class_inst_t const * p_inst)
+ *
+ * @sa status_generic_error_stall
+ */
+static ret_code_t status_unsupported_start(app_usbd_class_inst_t const * p_inst)
 {
     app_usbd_msc_t const * p_msc = msc_get(p_inst);
     app_usbd_msc_ctx_t *   p_msc_ctx = msc_ctx_get(p_msc);
+    bool data_stage = uint32_decode(p_msc_ctx->cbw.datlen) != 0;
 
-    if (p_msc_ctx->cbw.flags & APP_USBD_MSC_CBW_DIRECTION_IN)
+    if (!data_stage)
     {
-        return transfer_in_start(p_inst, NULL, 0, APP_USBD_MSC_STATE_UNSUPPORTED);
+        /* Try to transfer the response now */
+        ret_code_t ret;
+        ret = csw_wait_start(p_inst, APP_USBD_MSC_CSW_STATUS_FAIL);
+        if (ret == NRF_SUCCESS)
+        {
+            return ret;
+        }
     }
 
-    p_msc_ctx->state = APP_USBD_MSC_STATE_UNSUPPORTED;
-    return NRF_ERROR_NOT_SUPPORTED;
+    /* Cannot transfer failed response in current command - stall the endpoints and postpone the answer */
+    status_generic_error_stall(p_inst, APP_USBD_MSC_STATE_UNSUPPORTED);
+    if (data_stage)
+    {
+        if (!(p_msc_ctx->cbw.flags & APP_USBD_MSC_CBW_DIRECTION_IN))
+        {
+            nrf_drv_usbd_transfer_out_drop(ep_out_addr_get(p_inst));
+        }
+        /* Unsupported command so we did not process any data - mark it in current residue value */
+        p_msc_ctx->current.residue = uint32_decode(p_msc_ctx->cbw.datlen);
+    }
+    return NRF_SUCCESS;
 }
 
+/**
+ * @brief Start status stage of CBW invalid
+ *
+ * @param[in,out] p_inst    Generic class instance
+ *
+ * @sa status_generic_error_stall
+ */
+static void status_cbwinvalid_start(app_usbd_class_inst_t const * p_inst)
+{
+    status_generic_error_stall(p_inst, APP_USBD_MSC_STATE_CBW_INVALID);
+}
 
+/**
+ * @brief Start status stage of internal device error
+ *
+ * Kind of error that requires bulk reset but does not stall endpoint permanently - the correct
+ * answer is possible.
+ *
+ * @param[in] p_inst    Generic class instance
+ *
+ * @sa status_generic_error_stall
+ */
+static void status_deverror_start(app_usbd_class_inst_t const * p_inst)
+{
+    status_generic_error_stall(p_inst, APP_USBD_MSC_STATE_DEVICE_ERROR);
+}
 
 /**
  * @brief Internal SETUP standard IN request handler
@@ -343,23 +410,20 @@ static ret_code_t setup_req_std_in(app_usbd_class_inst_t const * p_inst,
                                    app_usbd_setup_evt_t const *  p_setup_ev)
 {
     /*Only Get Descriptor standard IN request is supported by MSC class*/
-    if (p_setup_ev->setup.bmRequest != APP_USBD_SETUP_STDREQ_GET_DESCRIPTOR)
+    if (p_setup_ev->setup.bmRequest == APP_USBD_SETUP_STDREQ_GET_DESCRIPTOR)
     {
-        return NRF_ERROR_NOT_SUPPORTED;
+        size_t dsc_len = 0;
+        /* Try to find descriptor in class internals*/
+        void const * p_dsc = app_usbd_class_descriptor_find(
+            p_inst,
+            p_setup_ev->setup.wValue.hb,
+            p_setup_ev->setup.wValue.lb,
+            &dsc_len);
+        if (p_dsc != NULL)
+        {
+            return app_usbd_core_setup_rsp(&(p_setup_ev->setup), p_dsc, dsc_len);
+        }
     }
-
-    size_t dsc_len = 0;
-
-    /* Try to find descriptor in class internals*/
-    void const * p_dsc = app_usbd_class_descriptor_find(p_inst,
-                                                        p_setup_ev->setup.wValue.hb,
-                                                        p_setup_ev->setup.wValue.lb,
-                                                        &dsc_len);
-    if (p_dsc != NULL)
-    {
-        return app_usbd_core_setup_rsp(&(p_setup_ev->setup), p_dsc, dsc_len);
-    }
-
     return NRF_ERROR_NOT_SUPPORTED;
 }
 
@@ -372,10 +436,60 @@ static ret_code_t setup_req_std_in(app_usbd_class_inst_t const * p_inst,
  * @return Standard error code
  * @retval NRF_SUCCESS if request handled correctly
  * @retval NRF_ERROR_NOT_SUPPORTED if request is not supported
+ * @retval NRF_ERROR_FORBIDDEN if endpoint stall cannot be cleared because of internal state
  */
 static ret_code_t setup_req_std_out(app_usbd_class_inst_t const * p_inst,
                                     app_usbd_setup_evt_t const *  p_setup_ev)
 {
+    app_usbd_msc_t const * p_msc = msc_get(p_inst);
+    app_usbd_msc_ctx_t *   p_msc_ctx = msc_ctx_get(p_msc);
+
+    app_usbd_setup_reqrec_t  req_rec = app_usbd_setup_req_rec(p_setup_ev->setup.bmRequestType);
+    if ((req_rec == APP_USBD_SETUP_REQREC_ENDPOINT                            ) &&
+        (p_setup_ev->setup.bmRequest == APP_USBD_SETUP_STDREQ_CLEAR_FEATURE   ) &&
+        (p_setup_ev->setup.wValue.w == APP_USBD_SETUP_STDFEATURE_ENDPOINT_HALT))
+    {
+        if (p_msc_ctx->state == APP_USBD_MSC_STATE_CBW_INVALID)
+        {
+            return NRF_ERROR_FORBIDDEN;
+        }
+        ret_code_t ret = NRF_SUCCESS;
+        /* Clearing endpoint here. It is done normally inside app_usbd, but we are overwritting this functionality */
+        nrf_drv_usbd_ep_t ep_addr = (nrf_drv_usbd_ep_t)(p_setup_ev->setup.wIndex.lb);
+        nrf_drv_usbd_ep_dtoggle_clear(ep_addr);
+        nrf_drv_usbd_ep_stall_clear(ep_addr);
+        if (NRF_USBD_EPIN_CHECK(ep_addr))
+        {
+            switch (p_msc_ctx->state)
+            {
+                case APP_USBD_MSC_STATE_UNSUPPORTED:
+                {
+                    nrf_drv_usbd_ep_stall_clear(ep_out_addr_get(p_inst));
+                    /*Unsupported command handle: status stage*/
+                    ret = csw_wait_start(p_inst, APP_USBD_MSC_CSW_STATUS_FAIL);
+                    if (ret != NRF_SUCCESS)
+                    {
+                        NRF_LOG_ERROR("Unexpected csw_wait_start on ep clear: %d", ret);
+                    }
+                    break;
+                }
+                case APP_USBD_MSC_STATE_DEVICE_ERROR:
+                {
+                    nrf_drv_usbd_ep_stall_clear(ep_out_addr_get(p_inst));
+                    /*Unsupported command handle: status stage*/
+                    ret = csw_wait_start(p_inst, APP_USBD_MSC_CSW_STATUS_PE);
+                    if (ret != NRF_SUCCESS)
+                    {
+                        NRF_LOG_ERROR("Unexpected csw_wait_start on ep clear: %d", ret);
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+        return ret;
+    }
     return NRF_ERROR_NOT_SUPPORTED;
 }
 
@@ -462,7 +576,7 @@ static ret_code_t setup_req_class_out(app_usbd_class_inst_t const * p_inst,
             NRF_LOG_DEBUG("bulk ep reset");
             bulk_ep_reset(p_inst);
 
-            if (p_msc_ctx->state == APP_USBD_MSC_STATE_DISABLED)
+            if (p_msc_ctx->state != APP_USBD_MSC_STATE_CBW)
             {
                 ret_code_t ret = cbw_wait_start(p_inst);
                 UNUSED_VARIABLE(ret);
@@ -492,30 +606,6 @@ static ret_code_t setup_event_handler(app_usbd_class_inst_t const * p_inst,
 {
     ASSERT(p_inst != NULL);
     ASSERT(p_setup_ev != NULL);
-    app_usbd_msc_t const * p_msc = msc_get(p_inst);
-    app_usbd_msc_ctx_t *   p_msc_ctx = msc_ctx_get(p_msc);
-
-    app_usbd_setup_reqrec_t  req_rec = app_usbd_setup_req_rec(p_setup_ev->setup.bmRequestType);
-    app_usbd_setup_reqtype_t req_type = app_usbd_setup_req_typ(p_setup_ev->setup.bmRequestType);
-    if (req_rec == APP_USBD_SETUP_REQREC_ENDPOINT &&
-        req_type == APP_USBD_SETUP_REQTYPE_STD)
-    {
-
-        ret_code_t ret = app_usbd_endpoint_std_req_handle(p_setup_ev);
-        if (ret != NRF_SUCCESS)
-        {
-            return ret;
-        }
-
-        if ((p_setup_ev->setup.bmRequest == APP_USBD_SETUP_STDREQ_CLEAR_FEATURE) &&
-            (p_msc_ctx->state == APP_USBD_MSC_STATE_UNSUPPORTED))
-        {
-            /*Unsupported command handle: status stage*/
-            ret = csw_wait_start(p_inst, APP_USBD_MSC_CSW_STATUS_FAIL);
-        }
-
-        return ret;
-    }
 
     if (app_usbd_setup_req_dir(p_setup_ev->setup.bmRequestType) == APP_USBD_SETUP_REQDIR_IN)
     {
@@ -529,7 +619,7 @@ static ret_code_t setup_event_handler(app_usbd_class_inst_t const * p_inst,
                 break;
         }
     }
-    else /*APP_USBD_SETUP_REQDIR_OUT*/
+    else /* APP_USBD_SETUP_REQDIR_OUT */
     {
         switch (app_usbd_setup_req_typ(p_setup_ev->setup.bmRequestType))
         {
@@ -659,10 +749,7 @@ static ret_code_t endpoint_in_event_handler(app_usbd_class_inst_t const *  p_ins
         }
         case APP_USBD_MSC_STATE_DATA_IN:
         {
-            CRITICAL_REGION_ENTER();
             ret = state_data_in_handle(p_inst);
-            CRITICAL_REGION_EXIT();
-
             break;
         }
         case APP_USBD_MSC_STATE_CSW:
@@ -740,17 +827,17 @@ static ret_code_t cmd_testunitready(app_usbd_class_inst_t const * p_inst,
     NRF_LOG_DEBUG("CMD: TESTUNITREADY");
     if (uint32_decode(p_msc_ctx->cbw.datlen) != 0)
     {
-        return unsupported_start(p_inst);
+        return status_unsupported_start(p_inst);
     }
 
     if (p_msc_ctx->cbw.cdb_length != APP_USBD_SCSI_CMD_TESTUNITREADY_LEN)
     {
-        return unsupported_start(p_inst);
+        return status_unsupported_start(p_inst);
     }
 
     if (p_msc_ctx->cbw.lun >= p_msc->specific.inst.block_devs_count)
     {
-        return unsupported_start(p_inst);
+        return status_unsupported_start(p_inst);
     }
 
     return csw_wait_start(p_inst, APP_USBD_MSC_CSW_STATUS_PASS);
@@ -774,12 +861,12 @@ static ret_code_t cmd_requestsense(app_usbd_class_inst_t const * p_inst,
 
     if ((p_msc_ctx->cbw.cdb_length < sizeof(app_usbd_scsi_cmd_requestsense_t)))
     {
-        return unsupported_start(p_inst);
+        return status_unsupported_start(p_inst);
     }
 
     if (p_msc_ctx->cbw.lun >= p_msc->specific.inst.block_devs_count)
     {
-        return unsupported_start(p_inst);
+        return status_unsupported_start(p_inst);
     }
 
     p_msc_ctx->resp_len = uint32_decode(p_msc_ctx->cbw.datlen);
@@ -818,7 +905,7 @@ static ret_code_t cmd_formatunit(app_usbd_class_inst_t const * p_inst,
                                  app_usbd_msc_ctx_t *          p_msc_ctx)
 {
     NRF_LOG_DEBUG("CMD: FORMAT_UNIT");
-    return unsupported_start(p_inst);
+    return status_unsupported_start(p_inst);
 }
 
 static ret_code_t cmd_read_start(app_usbd_class_inst_t const * p_inst,
@@ -867,12 +954,12 @@ static ret_code_t cmd_read6(app_usbd_class_inst_t const * p_inst,
     app_usbd_scsi_cmd_read6_t const * p_read6 = (const void *)p_msc_ctx->cbw.cdb;
     if (p_msc_ctx->cbw.cdb_length < sizeof(app_usbd_scsi_cmd_read6_t))
     {
-        return unsupported_start(p_inst);
+        return status_unsupported_start(p_inst);
     }
 
     if (p_msc_ctx->cbw.lun >= p_msc->specific.inst.block_devs_count)
     {
-        return unsupported_start(p_inst);
+        return status_unsupported_start(p_inst);
     }
 
     nrf_block_dev_t const * p_blkd = p_msc->specific.inst.pp_block_devs[p_msc_ctx->cbw.lun];
@@ -932,12 +1019,12 @@ static ret_code_t cmd_write6(app_usbd_class_inst_t const * p_inst,
     app_usbd_scsi_cmd_write6_t const * p_write6 = (const void *)p_msc_ctx->cbw.cdb;
     if (p_msc_ctx->cbw.cdb_length < sizeof(app_usbd_scsi_cmd_write6_t))
     {
-        return unsupported_start(p_inst);
+        return status_unsupported_start(p_inst);
     }
 
     if (p_msc_ctx->cbw.lun >= p_msc->specific.inst.block_devs_count)
     {
-        return unsupported_start(p_inst);
+        return status_unsupported_start(p_inst);
     }
 
     nrf_block_dev_t const * p_blkd = p_msc->specific.inst.pp_block_devs[p_msc_ctx->cbw.lun];
@@ -974,12 +1061,14 @@ static ret_code_t cmd_inquiry(app_usbd_class_inst_t const * p_inst,
     app_usbd_scsi_cmd_inquiry_t const * p_inq =  (const void *)p_msc_ctx->cbw.cdb;
     if (p_inq->pagecode != 0)
     {
-        return unsupported_start(p_inst);
+        NRF_LOG_WARNING("unsupported pagecode");
+        return status_unsupported_start(p_inst);
     }
 
     if (p_msc_ctx->cbw.lun >= p_msc->specific.inst.block_devs_count)
     {
-        return unsupported_start(p_inst);
+        NRF_LOG_WARNING("unsupported LUN");
+        return status_unsupported_start(p_inst);
     }
 
     p_msc_ctx->resp_len = uint32_decode(p_msc_ctx->cbw.datlen);
@@ -1073,12 +1162,12 @@ static ret_code_t cmd_modesense6(app_usbd_class_inst_t const * p_inst,
     UNUSED_VARIABLE(p_sense6);
     if (p_msc_ctx->cbw.cdb_length < sizeof(app_usbd_scsi_cmd_modesense6_t))
     {
-        return unsupported_start(p_inst);
+        return status_unsupported_start(p_inst);
     }
 
     if (p_msc_ctx->cbw.lun >= p_msc->specific.inst.block_devs_count)
     {
-        return unsupported_start(p_inst);
+        return status_unsupported_start(p_inst);
     }
 
     p_msc_ctx->resp_len = uint32_decode(p_msc_ctx->cbw.datlen);
@@ -1164,12 +1253,12 @@ static ret_code_t cmd_readcapacity10(app_usbd_class_inst_t const * p_inst,
     UNUSED_VARIABLE(p_cap10);
     if (p_msc_ctx->cbw.cdb_length < sizeof(app_usbd_scsi_cmd_readcapacity10_t))
     {
-        return unsupported_start(p_inst);
+        return status_unsupported_start(p_inst);
     }
 
     if (p_msc_ctx->cbw.lun >= p_msc->specific.inst.block_devs_count)
     {
-        return unsupported_start(p_inst);
+        return status_unsupported_start(p_inst);
     }
 
     p_msc_ctx->resp_len = uint32_decode(p_msc_ctx->cbw.datlen);
@@ -1209,12 +1298,12 @@ static ret_code_t cmd_read10(app_usbd_class_inst_t const * p_inst,
     app_usbd_scsi_cmd_read10_t const * p_read10 = (const void *)p_msc_ctx->cbw.cdb;
     if (p_msc_ctx->cbw.cdb_length < sizeof(app_usbd_scsi_cmd_read10_t))
     {
-        return unsupported_start(p_inst);
+        return status_unsupported_start(p_inst);
     }
 
     if (p_msc_ctx->cbw.lun >= p_msc->specific.inst.block_devs_count)
     {
-        return unsupported_start(p_inst);
+        return status_unsupported_start(p_inst);
     }
 
     if (uint32_decode(p_msc_ctx->cbw.datlen) == 0)
@@ -1224,7 +1313,7 @@ static ret_code_t cmd_read10(app_usbd_class_inst_t const * p_inst,
 
     if ((p_msc_ctx->cbw.flags & APP_USBD_MSC_CBW_DIRECTION_IN) == 0)
     {
-        return unsupported_start(p_inst);
+        return status_unsupported_start(p_inst);
     }
 
     nrf_block_dev_t const * p_blkd = p_msc->specific.inst.pp_block_devs[p_msc_ctx->cbw.lun];
@@ -1266,12 +1355,12 @@ static ret_code_t cmd_write10(app_usbd_class_inst_t const * p_inst,
     app_usbd_scsi_cmd_write10_t const * p_write10 = (const void *)p_msc_ctx->cbw.cdb;
     if (p_msc_ctx->cbw.cdb_length < sizeof(app_usbd_scsi_cmd_write10_t))
     {
-        return unsupported_start(p_inst);
+        return status_unsupported_start(p_inst);
     }
 
     if (p_msc_ctx->cbw.lun >= p_msc->specific.inst.block_devs_count)
     {
-        return unsupported_start(p_inst);
+        return status_unsupported_start(p_inst);
     }
 
     if (uint32_decode(p_msc_ctx->cbw.datlen) == 0)
@@ -1282,7 +1371,7 @@ static ret_code_t cmd_write10(app_usbd_class_inst_t const * p_inst,
 
     if ((p_msc_ctx->cbw.flags & APP_USBD_MSC_CBW_DIRECTION_IN) != 0)
     {
-        return unsupported_start(p_inst);
+        return status_unsupported_start(p_inst);
     }
 
     nrf_block_dev_t const * p_blkd = p_msc->specific.inst.pp_block_devs[p_msc_ctx->cbw.lun];
@@ -1341,12 +1430,12 @@ static ret_code_t cmd_modesense10(app_usbd_class_inst_t const * p_inst,
     UNUSED_VARIABLE(p_sense10);
     if (p_msc_ctx->cbw.cdb_length < sizeof(app_usbd_scsi_cmd_modesense10_t))
     {
-        return unsupported_start(p_inst);
+        return status_unsupported_start(p_inst);
     }
 
     if (p_msc_ctx->cbw.lun >= p_msc->specific.inst.block_devs_count)
     {
-        return unsupported_start(p_inst);
+        return status_unsupported_start(p_inst);
     }
 
     p_msc_ctx->resp_len = uint32_decode(p_msc_ctx->cbw.datlen);
@@ -1366,6 +1455,25 @@ static ret_code_t cmd_modesense10(app_usbd_class_inst_t const * p_inst,
                              APP_USBD_MSC_STATE_CMD_IN);
 }
 
+/**
+ * @brief Get the size of the last OUT transfer
+ *
+ * @param p_inst Generic class instance
+ *
+ * @return Number of received bytes or 0 if none.
+ */
+static size_t get_last_out_size(app_usbd_class_inst_t const * p_inst)
+{
+    nrf_drv_usbd_ep_t ep = ep_out_addr_get(p_inst);
+    size_t size;
+    ret_code_t ret = nrf_drv_usbd_ep_status_get(ep, &size);
+    if (ret != NRF_SUCCESS)
+    {
+        size = 0;
+    }
+
+    return size;
+}
 
 /**
  * @brief SCSI Command Block Wrapper handler
@@ -1380,6 +1488,14 @@ static ret_code_t state_cbw(app_usbd_class_inst_t const * p_inst)
 
     memset(&p_msc_ctx->current, 0, sizeof(p_msc_ctx->current));
 
+    /*Verify the transfer size*/
+    if (get_last_out_size(p_inst) != sizeof(app_usbd_msc_cbw_t))
+    {
+        NRF_LOG_DEBUG("CMD: size error: %u", get_last_out_size(p_inst));
+        status_cbwinvalid_start(p_inst);
+        return NRF_SUCCESS;
+    }
+
     /*Verify CBW signature*/
     if (memcmp(p_msc_ctx->cbw.signature,
                APP_USBD_MSC_CBW_SIGNATURE,
@@ -1389,7 +1505,8 @@ static ret_code_t state_cbw(app_usbd_class_inst_t const * p_inst)
                                 p_msc_ctx->cbw.signature[0], p_msc_ctx->cbw.signature[1],
                                 p_msc_ctx->cbw.signature[2], p_msc_ctx->cbw.signature[3]);
 
-        return csw_wait_start(p_inst, APP_USBD_MSC_CSW_STATUS_PASS);
+        status_cbwinvalid_start(p_inst);
+        return NRF_SUCCESS;
     }
 
     ret_code_t ret = NRF_SUCCESS;
@@ -1445,9 +1562,10 @@ static ret_code_t state_cbw(app_usbd_class_inst_t const * p_inst)
             break;
         default:
             NRF_LOG_DEBUG("CMD: UNSUPPORTED");
+            NRF_LOG_HEXDUMP_DEBUG(&(p_msc_ctx->cbw), sizeof(p_msc_ctx->cbw));
             if (uint32_decode(p_msc_ctx->cbw.datlen) != 0)
             {
-                ret = unsupported_start(p_inst);
+                ret = status_unsupported_start(p_inst);
             }
             else
             {
@@ -1579,7 +1697,20 @@ static ret_code_t endpoint_out_event_handler(app_usbd_class_inst_t const *  p_in
     }
     else if (p_event->drv_evt.data.eptransfer.status == NRF_USBD_EP_OVERLOAD)
     {
-        nrf_drv_usbd_transfer_out_drop(p_event->drv_evt.data.eptransfer.ep);
+        NRF_LOG_ERROR("Data overload");
+        switch (p_msc_ctx->state)
+        {
+            case APP_USBD_MSC_STATE_DATA_OUT:
+            {
+                status_deverror_start(p_inst);
+            }
+            /* Default action is the same like CBW - stall totally until bulk reset */
+            case APP_USBD_MSC_STATE_CBW:
+            default:
+            {
+                status_cbwinvalid_start(p_inst);
+            }
+        }
         return NRF_SUCCESS;
     }
     else   /*NRF_USBD_EP_OK*/
@@ -1613,11 +1744,13 @@ static ret_code_t endpoint_out_event_handler(app_usbd_class_inst_t const *  p_in
             default:
             {
                 ASSERT(0);
+                ret = NRF_ERROR_NOT_SUPPORTED;
                 break;
             }
         }
     }
 
+    NRF_LOG_DEBUG("Ep proc status: %d", ret);
     return ret;
 }
 
@@ -1831,7 +1964,7 @@ static void msc_blockdev_read_done_handler(nrf_block_dev_t const * p_blk_dev,
                                 APP_USBD_MSC_STATE_DATA_IN);
         if (ret != NRF_SUCCESS)
         {
-            UNUSED_RETURN_VALUE(unsupported_start(p_inst));
+            UNUSED_RETURN_VALUE(status_unsupported_start(p_inst));
         }
         else
         {
@@ -1879,7 +2012,7 @@ static void msc_blockdev_read_done_handler(nrf_block_dev_t const * p_blk_dev,
 
     if (ret != NRF_SUCCESS)
     {
-        UNUSED_RETURN_VALUE(unsupported_start(p_inst));
+        UNUSED_RETURN_VALUE(status_unsupported_start(p_inst));
     }
 }
 
@@ -1958,7 +2091,7 @@ static void msc_blockdev_write_done_handler(nrf_block_dev_t const * p_blk_dev,
 
         if (ret != NRF_SUCCESS)
         {
-            UNUSED_RETURN_VALUE(unsupported_start(p_inst));
+            UNUSED_RETURN_VALUE(status_unsupported_start(p_inst));
         }
 
         return;
@@ -1992,7 +2125,7 @@ static void msc_blockdev_write_done_handler(nrf_block_dev_t const * p_blk_dev,
             }
             else
             {
-                UNUSED_RETURN_VALUE(unsupported_start(p_inst));
+                UNUSED_RETURN_VALUE(status_unsupported_start(p_inst));
             }
         }
     }

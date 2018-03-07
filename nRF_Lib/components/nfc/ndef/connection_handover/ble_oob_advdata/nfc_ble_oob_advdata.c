@@ -37,8 +37,8 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  */
-#include "sdk_config.h"
-#if NFC_BLE_OOB_ADVDATA_ENABLED
+#include "sdk_common.h"
+#if NRF_MODULE_ENABLED(NFC_BLE_OOB_ADVDATA)
 
 #include "nfc_ble_oob_advdata.h"
 #include "sdk_common.h"
@@ -401,4 +401,4 @@ void nfc_tk_value_payload_encode(ble_advdata_tk_value_t * p_tk_value,
     }
 }
 
-#endif // NFC_BLE_OOB_ADVDATA_ENABLED
+#endif // NRF_MODULE_ENABLED(NFC_BLE_OOB_ADVDATA)

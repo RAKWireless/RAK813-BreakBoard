@@ -460,8 +460,8 @@ static void racp_send(ble_gls_t * p_gls, ble_racp_value_t * p_racp_val)
             state_set(STATE_RACP_RESPONSE_IND_VERIF);
             break;
 
-        case NRF_ERROR_RESOURCES:
-            // Wait for TX_COMPLETE event to retry transmission
+        case NRF_ERROR_BUSY:
+            // Wait for BLE_GATTS_EVT_HVC event to retry transmission
             state_set(STATE_RACP_RESPONSE_PENDING);
             break;
 
@@ -1228,6 +1228,10 @@ static void on_hvc(ble_gls_t * p_gls, ble_evt_t const * p_ble_evt)
         {
             // Indication has been acknowledged. Return to default state.
             state_set(STATE_NO_COMM);
+        }
+        else if (m_gls_state == STATE_RACP_RESPONSE_PENDING)
+        {
+            racp_send(p_gls, &m_pending_racp_response);
         }
         else
         {

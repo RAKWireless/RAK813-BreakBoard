@@ -106,6 +106,7 @@ bool dtm_hw_set_timer(NRF_TIMER_Type ** mp_timer, IRQn_Type * m_timer_irq, uint3
         *mp_timer    = NRF_TIMER2;
         *m_timer_irq = TIMER2_IRQn;
     }
+#ifndef NRF52810_XXAA
     else if (new_timer == 3)
     {
         *mp_timer    = NRF_TIMER3;
@@ -116,6 +117,7 @@ bool dtm_hw_set_timer(NRF_TIMER_Type ** mp_timer, IRQn_Type * m_timer_irq, uint3
         *mp_timer    = NRF_TIMER4;
         *m_timer_irq = TIMER4_IRQn;
     }
+#endif //NRF52810_XXAA
     else
     {
         // Parameter error: Only TIMER 0, 1, 2, 3 and 4 provided by nRF52

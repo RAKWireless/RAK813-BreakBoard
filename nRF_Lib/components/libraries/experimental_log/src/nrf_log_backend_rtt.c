@@ -46,7 +46,6 @@
 #include <SEGGER_RTT_Conf.h>
 #include <SEGGER_RTT.h>
 
-
 static uint8_t m_string_buff[NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE];
 
 void nrf_log_backend_rtt_init(void)
@@ -99,4 +98,4 @@ const nrf_log_backend_api_t nrf_log_backend_rtt_api = {
         .flush     = nrf_log_backend_rtt_flush,
         .panic_set = nrf_log_backend_rtt_panic_set,
 };
-#endif //NRF_LOG_ENABLED
+#endif //NRF_MODULE_ENABLED(NRF_LOG) && NRF_MODULE_ENABLED(NRF_LOG_BACKEND_RTT)

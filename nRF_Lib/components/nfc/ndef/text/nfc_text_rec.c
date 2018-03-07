@@ -37,6 +37,9 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  */
+#include "sdk_common.h"
+#if NRF_MODULE_ENABLED(NFC_NDEF_TEXT_RECORD)
+
 #include <string.h>
 #include "nfc_text_rec.h"
 #include "nrf_error.h"
@@ -101,4 +104,4 @@ ret_code_t nfc_text_rec_payload_constructor(nfc_text_rec_payload_desc_t * p_nfc_
     return NRF_SUCCESS;
 }
 
-
+#endif // NRF_MODULE_ENABLED(NFC_NDEF_TEXT_RECORD)

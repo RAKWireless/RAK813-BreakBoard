@@ -203,7 +203,7 @@ static inline ret_code_t hid_mouse_transfer_set(app_usbd_hid_mouse_t const * p_m
 
     ret_code_t ret;
     CRITICAL_REGION_ENTER();
-    ret = app_usbd_core_ep_transfer(ep_addr, &transfer);
+    ret = app_usbd_ep_transfer(ep_addr, &transfer);
     if (ret == NRF_SUCCESS)
     {
         app_usbd_hid_state_flag_set(&p_mouse_ctx->hid_ctx,

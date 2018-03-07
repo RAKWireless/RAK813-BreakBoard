@@ -259,8 +259,10 @@ uint32_t ble_gap_evt_auth_status_t_enc(void const * const p_void_struct,
                                        uint32_t * const   p_index)
 {
     SER_STRUCT_ENC_BEGIN(ble_gap_evt_auth_status_t);
-
     uint8_t ser_data = (p_struct->error_src) | ((p_struct->bonded) << 2);
+#if NRF_SD_BLE_API_VERSION >= 5
+    ser_data |= ((p_struct->lesc) << 3);
+#endif
     SER_PUSH_uint8(&(p_struct->auth_status));
     SER_PUSH_uint8(&ser_data);
 
@@ -284,6 +286,9 @@ uint32_t ble_gap_evt_auth_status_t_dec(uint8_t const * const p_buf,
     SER_PULL_uint8(&ser_data);
     p_struct->error_src = ser_data & 0x03;
     p_struct->bonded    = (ser_data >> 2) & 0x01;
+#if NRF_SD_BLE_API_VERSION >= 5
+    p_struct->lesc    = (ser_data >> 3) & 0x01;
+#endif
 
     SER_PULL_FIELD(&(p_struct->sm1_levels), ble_gap_sec_levels_t_dec);
     SER_PULL_FIELD(&(p_struct->sm2_levels), ble_gap_sec_levels_t_dec);
@@ -1346,8 +1351,8 @@ uint32_t ble_gap_data_length_params_t_enc(void const * const p_void_struct,
 {
     SER_STRUCT_ENC_BEGIN(ble_gap_data_length_params_t);
 
-    SER_PUSH_uint8(&p_struct->max_tx_octets);
-    SER_PUSH_uint8(&p_struct->max_rx_octets);
+    SER_PUSH_uint16(&p_struct->max_tx_octets);
+    SER_PUSH_uint16(&p_struct->max_rx_octets);
     SER_PUSH_uint16(&p_struct->max_tx_time_us);
     SER_PUSH_uint16(&p_struct->max_rx_time_us);
 
@@ -1361,8 +1366,8 @@ uint32_t ble_gap_data_length_params_t_dec(uint8_t const * const p_buf,
 {
     SER_STRUCT_DEC_BEGIN(ble_gap_data_length_params_t);
 
-    SER_PULL_uint8(&p_struct->max_tx_octets);
-    SER_PULL_uint8(&p_struct->max_rx_octets);
+    SER_PULL_uint16(&p_struct->max_tx_octets);
+    SER_PULL_uint16(&p_struct->max_rx_octets);
     SER_PULL_uint16(&p_struct->max_tx_time_us);
     SER_PULL_uint16(&p_struct->max_rx_time_us);
 
@@ -1376,8 +1381,8 @@ uint32_t ble_gap_data_length_limitation_t_enc(void const * const p_void_struct,
 {
     SER_STRUCT_ENC_BEGIN(ble_gap_data_length_limitation_t);
 
-    SER_PUSH_uint8(&p_struct->tx_payload_limited_octets);
-    SER_PUSH_uint8(&p_struct->rx_payload_limited_octets);
+    SER_PUSH_uint16(&p_struct->tx_payload_limited_octets);
+    SER_PUSH_uint16(&p_struct->rx_payload_limited_octets);
     SER_PUSH_uint16(&p_struct->tx_rx_time_limited_us);
 
     SER_STRUCT_ENC_END;
@@ -1390,8 +1395,8 @@ uint32_t ble_gap_data_length_limitation_t_dec(uint8_t const * const p_buf,
 {
     SER_STRUCT_DEC_BEGIN(ble_gap_data_length_limitation_t);
 
-    SER_PULL_uint8(&p_struct->tx_payload_limited_octets);
-    SER_PULL_uint8(&p_struct->rx_payload_limited_octets);
+    SER_PULL_uint16(&p_struct->tx_payload_limited_octets);
+    SER_PULL_uint16(&p_struct->rx_payload_limited_octets);
     SER_PULL_uint16(&p_struct->tx_rx_time_limited_us);
 
     SER_STRUCT_DEC_END;

@@ -209,10 +209,10 @@ __STATIC_INLINE bool nrf_log_backend_is_enabled(nrf_log_backend_t const * p_back
 
 #endif // SUPPRESS_INLINE_IMPLEMENTATION
 
-#endif //NRF_LOG_BACKEND_INTERFACE_H
-
 #ifdef __cplusplus
 }
 #endif
+
+#endif //NRF_LOG_BACKEND_INTERFACE_H
 
 /** @} */

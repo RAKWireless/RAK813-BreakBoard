@@ -216,9 +216,9 @@ void nrf_drv_qdec_accumulators_read(int16_t * p_acc, int16_t * p_accdbl)
     *p_accdbl = (int16_t)nrf_qdec_accdblread_get();
 
     NRF_LOG_DEBUG("Accumulators data, ACC register:");
-    NRF_LOG_HEXDUMP_DEBUG((uint8_t *)p_acc, sizeof(p_acc));
+    NRF_LOG_HEXDUMP_DEBUG((uint8_t *)p_acc, sizeof(p_acc[0]));
     NRF_LOG_DEBUG("Accumulators data, ACCDBL register:");
-    NRF_LOG_HEXDUMP_DEBUG((uint8_t *)p_accdbl, sizeof(p_accdbl));
+    NRF_LOG_HEXDUMP_DEBUG((uint8_t *)p_accdbl, sizeof(p_accdbl[0]));
 }
 
 void nrf_drv_qdec_task_address_get(nrf_qdec_task_t task, uint32_t * p_task)

@@ -37,6 +37,9 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  */
+#include "sdk_common.h"
+#if NRF_MODULE_ENABLED(NFC_NDEF_LAUNCHAPP_MSG)
+
 #include <stdint.h>
 #include <string.h>
 #include "nfc_launchapp_rec.h"
@@ -91,3 +94,4 @@ ret_code_t nfc_launchapp_msg_encode(uint8_t const * p_android_package_name,
     return err_code;
 }
 
+#endif // NRF_MODULE_ENABLED(NFC_NDEF_LAUNCHAPP_MSG)

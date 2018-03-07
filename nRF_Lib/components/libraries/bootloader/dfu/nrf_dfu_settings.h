@@ -51,7 +51,7 @@
 #include "nrf_dfu_types.h"
 #include "nrf_dfu_flash.h"
 
-#if defined(SOFTDEVICE_PRESENT)
+#if defined(NRF_DFU_SVCI_ENABLED) && defined(SOFTDEVICE_PRESENT)
 #include "nrf_dfu_svci.h"
 #endif
 

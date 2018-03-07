@@ -63,6 +63,7 @@ typedef enum
 {
   NRF_BLE_ES_EVT_ADVERTISEMENT_SENT,        //!< A non-connectable Eddystone frame advertisement was sent.
   NRF_BLE_ES_EVT_CONNECTABLE_ADV_STARTED,   //!< Advertising in connectable mode was started.
+  NRF_BLE_ES_EVT_CONNECTABLE_ADV_STOPPED,   //!< Advertising in connectable mode was stopped.
 } nrf_ble_es_evt_t;
 
 /**@brief Eddystone event handler type. */

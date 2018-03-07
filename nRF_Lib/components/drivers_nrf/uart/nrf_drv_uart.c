@@ -434,9 +434,12 @@ ret_code_t nrf_drv_uart_tx(const nrf_drv_uart_t * p_instance, uint8_t const * co
     p_cb->p_tx_buffer      = p_data;
     p_cb->tx_counter       = 0;
 
-    NRF_LOG_INFO("TX req id:%d length: %d.", nrf_drv_get_IRQn((void *)p_instance->reg.p_reg), p_cb->tx_buffer_length);
+    NRF_LOG_INFO("TX req id:%d length: %d.",
+                 nrf_drv_get_IRQn((void *)p_instance->reg.p_reg),
+                 p_cb->tx_buffer_length);
     NRF_LOG_DEBUG("Tx data:");
-    NRF_LOG_HEXDUMP_DEBUG((uint8_t *)p_cb->p_tx_buffer, p_cb->tx_buffer_length * sizeof(p_cb->p_tx_buffer));
+    NRF_LOG_HEXDUMP_DEBUG((uint8_t *)p_cb->p_tx_buffer,
+                          p_cb->tx_buffer_length * sizeof(p_cb->p_tx_buffer[0]));
 
     CODE_FOR_UARTE
     (

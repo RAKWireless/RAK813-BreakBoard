@@ -78,8 +78,10 @@ void HardFault_Handler(void)
     "   mov r3, sp                              \n" /* Remember old SP */
     "   mov sp, r0                              \n" /* SP changed the pointer when hardfault was generated - we cannot just switch to PSP in exception */
     "   push {r3,lr}                            \n" /* Save old SP and LR on the task stack */
+#if !defined(__SES_ARM)
     "   .cfi_def_cfa_offset 8                   \n"
     "   .cfi_offset 14, -4                      \n"
+#endif
    /* No information about saved SP above (no .cfi_offset 13, -8).
     * In other case this would direct us back to using always MSP while backtracking */
     "   ldr r3, =%0                             \n"

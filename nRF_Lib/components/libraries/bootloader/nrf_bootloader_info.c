@@ -50,8 +50,8 @@
     uint32_t  m_uicr_bootloader_start_address __attribute__((at(NRF_UICR_BOOTLOADER_START_ADDRESS)))
                                                     = BOOTLOADER_START_ADDR;
     #pragma pop
-#elif defined ( __GNUC__ )
-    volatile uint32_t m_uicr_bootloader_start_address  __attribute__ ((section(".uicrBootStartAddress")))
+#elif defined ( __GNUC__ ) || defined ( __SES_ARM )
+    volatile uint32_t m_uicr_bootloader_start_address  __attribute__ ((section(".uicr_bootloader_start_address")))
                                             = BOOTLOADER_START_ADDR;
 #elif defined ( __ICCARM__ )
     __root    const uint32_t m_uicr_bootloader_start_address @ NRF_UICR_BOOTLOADER_START_ADDRESS

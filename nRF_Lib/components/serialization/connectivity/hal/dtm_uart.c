@@ -82,17 +82,18 @@
  * @note If UART bit rate is changed, this value should be recalculated as well.
  */
 
-static uint32_t       m_baud_rates[] = {[UART_BAUD_RATE_1200]   = UART_BAUDRATE_BAUDRATE_Baud1200,
-                                        [UART_BAUD_RATE_2400]   = UART_BAUDRATE_BAUDRATE_Baud2400,
-                                        [UART_BAUD_RATE_4800]   = UART_BAUDRATE_BAUDRATE_Baud4800,
-                                        [UART_BAUD_RATE_9600]   = UART_BAUDRATE_BAUDRATE_Baud9600,
-                                        [UART_BAUD_RATE_14400]  = UART_BAUDRATE_BAUDRATE_Baud14400,
-                                        [UART_BAUD_RATE_19200]  = UART_BAUDRATE_BAUDRATE_Baud19200,
-                                        [UART_BAUD_RATE_28800]  = UART_BAUDRATE_BAUDRATE_Baud28800,
-                                        [UART_BAUD_RATE_38400]  = UART_BAUDRATE_BAUDRATE_Baud38400,
-                                        [UART_BAUD_RATE_57600]  = UART_BAUDRATE_BAUDRATE_Baud57600,
-                                        [UART_BAUD_RATE_76800]  = UART_BAUDRATE_BAUDRATE_Baud76800,
-                                        [UART_BAUD_RATE_115200] = UART_BAUDRATE_BAUDRATE_Baud115200, };
+static uint32_t       m_baud_rates[] = {[UART_BAUD_RATE_1200]   = NRF_UART_BAUDRATE_1200,
+                                        [UART_BAUD_RATE_2400]   = NRF_UART_BAUDRATE_2400,
+                                        [UART_BAUD_RATE_4800]   = NRF_UART_BAUDRATE_4800,
+                                        [UART_BAUD_RATE_9600]   = NRF_UART_BAUDRATE_9600,
+                                        [UART_BAUD_RATE_14400]  = NRF_UART_BAUDRATE_14400,
+                                        [UART_BAUD_RATE_19200]  = NRF_UART_BAUDRATE_19200,
+                                        [UART_BAUD_RATE_28800]  = NRF_UART_BAUDRATE_28800,
+                                        [UART_BAUD_RATE_38400]  = NRF_UART_BAUDRATE_38400,
+                                        [UART_BAUD_RATE_57600]  = NRF_UART_BAUDRATE_57600,
+                                        [UART_BAUD_RATE_76800]  = NRF_UART_BAUDRATE_76800,
+                                        [UART_BAUD_RATE_115200] = NRF_UART_BAUDRATE_115200 };
+
 
 static uint32_t       m_iteration[] = {[UART_BAUD_RATE_1200]   = 51,
                                        [UART_BAUD_RATE_2400]   = 35,

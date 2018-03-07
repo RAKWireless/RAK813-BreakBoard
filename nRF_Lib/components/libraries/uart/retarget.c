@@ -85,7 +85,27 @@ int fputc(int ch, FILE * p_file)
     return ch;
 }
 
-#elif defined(__GNUC__)
+#elif defined(__GNUC__) && defined(__SES_ARM)
+
+int __getchar(FILE * p_file)
+{
+    uint8_t input;
+    while (app_uart_get(&input) == NRF_ERROR_NOT_FOUND)
+    {
+        // No implementation needed.
+    }
+    return input;
+}
+
+int __putchar(int ch, FILE * p_file)
+{
+    UNUSED_PARAMETER(p_file);
+
+    UNUSED_VARIABLE(app_uart_put((uint8_t)ch));
+    return ch;
+}
+
+#elif defined(__GNUC__) && !defined(__SES_ARM)
 
 int _write(int file, const char * p_char, int len)
 {
@@ -111,7 +131,6 @@ int _read(int file, char * p_char, int len)
 
     return 1;
 }
-
 #elif defined(__ICCARM__)
 
 size_t __write(int handle, const unsigned char * buffer, size_t size)

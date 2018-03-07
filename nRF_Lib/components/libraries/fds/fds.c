@@ -46,6 +46,9 @@
 #include <string.h>
 #include <stdbool.h>
 #include "nrf_error.h"
+#include "nrf_atomic.h"
+#include "nrf_atfifo.h"
+
 #include "nrf_fstorage.h"
 #if (FDS_BACKEND == NRF_FSTORAGE_SD)
 #include "nrf_fstorage_sd.h"
@@ -56,7 +59,7 @@
 #endif
 
 #if (FDS_CRC_CHECK_ON_READ)
-    #include "crc16.h"
+#include "crc16.h"
 #endif
 
 
@@ -68,19 +71,26 @@ NRF_FSTORAGE_DEF(nrf_fstorage_t m_fs) =
     .evt_handler = fs_event_handler,
 };
 
-
 // Internal status flags.
-static uint8_t              m_flags;
+static struct
+{
+    bool volatile     initialized;
+    nrf_atomic_flag_t initializing;
+} m_flags;
+
+// The number of queued operations.
+// Incremented by queue_start() and decremented by queue_has_next().
+static nrf_atomic_u32_t  m_queued_op_cnt;
 
 // The number of registered users and their callback functions.
-static uint8_t              m_users;
+static nrf_atomic_u32_t     m_users;
 static fds_cb_t             m_cb_table[FDS_MAX_USERS];
 
 // The latest (largest) record ID written so far.
-static uint32_t             m_latest_rec_id;
+static nrf_atomic_u32_t     m_latest_rec_id;
 
-// The internal queues.
-static fds_op_queue_t       m_op_queue;
+// Queue of fds operations.
+NRF_ATFIFO_DEF(m_queue, fds_op_t, FDS_OP_QUEUE_SIZE);
 
 // Structures used to hold informations about virtual pages.
 static fds_page_t           m_pages[FDS_DATA_PAGES];
@@ -88,28 +98,6 @@ static fds_swap_page_t      m_swap_page;
 
 // Garbage collection data.
 static fds_gc_data_t        m_gc;
-
-
-static void flag_set(fds_flags_t flag)
-{
-    CRITICAL_SECTION_ENTER();
-    m_flags |= flag;
-    CRITICAL_SECTION_EXIT();
-}
-
-
-static void flag_clear(fds_flags_t flag)
-{
-    CRITICAL_SECTION_ENTER();
-    m_flags &= ~(flag);
-    CRITICAL_SECTION_EXIT();
-}
-
-
-static bool flag_is_set(fds_flags_t flag)
-{
-    return (m_flags & flag);
-}
 
 
 static void event_send(fds_evt_t const * const p_evt)
@@ -173,10 +161,37 @@ static void event_prepare(fds_op_t const * const p_op, fds_evt_t * const p_evt)
 }
 
 
-static bool header_is_valid(fds_header_t const * const p_header)
+static bool header_has_next(fds_header_t const * p_hdr, uint32_t const * p_page_end)
 {
-    return ((p_header->file_id    != FDS_FILE_ID_INVALID) &&
-            (p_header->record_key != FDS_RECORD_KEY_DIRTY));
+    uint32_t const * const p_hdr32 = (uint32_t*)p_hdr;
+    return (   ( p_hdr32 <  p_page_end)
+            && (*p_hdr32 != FDS_ERASED_WORD));  // Check last to be on the safe side (dereference)
+}
+
+
+// Jump to the next header.
+static fds_header_t const * header_jump(fds_header_t const * const p_hdr)
+{
+    return (fds_header_t*)((uint32_t*)p_hdr + FDS_HEADER_SIZE + p_hdr->length_words);
+}
+
+
+static fds_header_status_t header_check(fds_header_t const * p_hdr, uint32_t const * p_page_end)
+{
+    if (((uint32_t*)header_jump(p_hdr) > p_page_end))
+    {
+        // The length field would jump across the page boundary.
+        // FDS won't allow writing such a header, therefore it has been corrupted.
+        return FDS_HEADER_CORRUPT;
+    }
+
+    if (   (p_hdr->file_id    == FDS_FILE_ID_INVALID)
+        || (p_hdr->record_key == FDS_RECORD_KEY_DIRTY))
+    {
+        return FDS_HEADER_DIRTY;
+    }
+
+    return FDS_HEADER_VALID;
 }
 
 
@@ -192,7 +207,8 @@ static bool address_is_valid(uint32_t const * const p_addr)
 // Reads a page tag, and determines if the page is used to store data or as swap.
 static fds_page_type_t page_identify(uint32_t const * const p_page_addr)
 {
-    if (p_page_addr[FDS_PAGE_TAG_WORD_0] != FDS_PAGE_TAG_MAGIC)
+    if (   (p_page_addr == NULL)    // Should never happen.
+        || (p_page_addr[FDS_PAGE_TAG_WORD_0] != FDS_PAGE_TAG_MAGIC))
     {
         return FDS_PAGE_UNDEFINED;
     }
@@ -265,38 +281,47 @@ static void page_scan(uint32_t const *       p_addr,
                       uint16_t       * const words_written,
                       bool           * const can_gc)
 {
-    uint32_t const * const p_end_addr          = p_addr + FDS_PAGE_SIZE;
-    bool                   dirty_record_found  = false;
+    uint32_t const * const p_page_end = p_addr + FDS_PAGE_SIZE;
 
     p_addr         += FDS_PAGE_TAG_SIZE;
     *words_written  = FDS_PAGE_TAG_SIZE;
 
-    while ((p_addr < p_end_addr) && (*p_addr != FDS_ERASED_WORD))
-    {
-        // NOTE: Skip records with a dirty key or with a missing file ID.
-        fds_header_t const * const p_header = (fds_header_t*)p_addr;
+    fds_header_t const * p_header = (fds_header_t*)p_addr;
 
-        if (!header_is_valid(p_header))
-        {
-            dirty_record_found = true;
-        }
-        else
+    while (header_has_next(p_header, p_page_end))
+    {
+        fds_header_status_t hdr = header_check(p_header, p_page_end);
+
+        if (hdr == FDS_HEADER_VALID)
         {
             // Update the latest (largest) record ID.
             if (p_header->record_id > m_latest_rec_id)
             {
-               m_latest_rec_id = p_header->record_id;
+                m_latest_rec_id = p_header->record_id;
+            }
+        }
+        else
+        {
+            if (can_gc != NULL)
+            {
+                *can_gc = true;
+            }
+
+            if (hdr == FDS_HEADER_CORRUPT)
+            {
+                // It could happen that a record has a corrupt header which would set a
+                // wrong offset for this page. In such cases, update this value to its maximum,
+                // to ensure that no new records will be written to this page and to enable
+                // correct statistics reporting by fds_stat().
+                *words_written = FDS_PAGE_SIZE;
+
+                // We can't continue to scan this page.
+                return;
             }
         }
 
-        // Jump to the next record.
-        p_addr         += (FDS_HEADER_SIZE + p_header->length_words);
         *words_written += (FDS_HEADER_SIZE + p_header->length_words);
-    }
-
-    if (can_gc != NULL)
-    {
-        *can_gc = dirty_record_found;
+        p_header        = header_jump(p_header);
     }
 }
 
@@ -309,7 +334,7 @@ static void page_offsets_update(fds_page_t * const p_page, uint16_t length_words
 
 
 // Tags a page as swap, i.e., reserved for GC.
-static ret_code_t page_tag_write_swap()
+static ret_code_t page_tag_write_swap(void)
 {
     // The tag needs to be statically allocated since it is not buffered by fstorage.
     static uint32_t const page_tag_swap[] = {FDS_PAGE_TAG_MAGIC, FDS_PAGE_TAG_SWAP};
@@ -367,50 +392,52 @@ static void write_space_free(uint16_t length_words, uint16_t page)
 
 static uint32_t record_id_new(void)
 {
-    CRITICAL_SECTION_ENTER();
-    m_latest_rec_id++;
-    CRITICAL_SECTION_EXIT();
-    return m_latest_rec_id;
+    return nrf_atomic_u32_add(&m_latest_rec_id, 1);
 }
 
 
-// Given a page and a record, finds the next valid record on that page. If p_record is NULL,
-// search from the beginning of the page, otherwise, resume searching from the address
-// pointed by p_record. Returns true if a record is found, returns false otherwise.
+// Given a page and a record, find the next valid record on that page.
+// If p_record is NULL, search from the beginning of the page,
+// otherwise, resume searching from p_record.
+// Return true if a record is found, false otherwise.
 // If no record is found, p_record is unchanged.
 static bool record_find_next(uint16_t page, uint32_t const ** p_record)
 {
-    fds_header_t const * p_header;
-    uint32_t     const * p_next_rec = (*p_record);
+    uint32_t const * p_page_end = (m_pages[page].p_addr + FDS_PAGE_SIZE);
 
-    // If this is not the first invocation on this page, then jump to the next record.
-    // Otherwise, start searching from the beginning of the page.
-    if (p_next_rec != NULL)
+    // If this is the first call on this page, start searching from its beginning.
+    // Otherwise, jump to the next record.
+    fds_header_t const * p_header = (fds_header_t*)(*p_record);
+
+    if (p_header != NULL)
     {
-        p_header    = ((fds_header_t*)p_next_rec);
-        p_next_rec += (FDS_HEADER_SIZE + p_header->length_words);
+        p_header = header_jump(p_header);
     }
     else
     {
-        p_next_rec = m_pages[page].p_addr + FDS_PAGE_TAG_SIZE;
+        p_header = (fds_header_t*)(m_pages[page].p_addr + FDS_PAGE_TAG_SIZE);
     }
 
-    // Read records from the page, until a valid record is found or the end of the page is
-    // reached. The argument p_record is only updated if a valid record is found.
-    while ((p_next_rec < (m_pages[page].p_addr + FDS_PAGE_SIZE) &&
-           *p_next_rec != FDS_ERASED_WORD))
-    {
-        p_header = (fds_header_t*)p_next_rec;
+    // Read records from the page until:
+    // - a valid record is found or
+    // - the last record on a page is found
 
-        if (header_is_valid(p_header))
+    while (header_has_next(p_header, p_page_end))
+    {
+        switch (header_check(p_header, p_page_end))
         {
-            *p_record = p_next_rec;
-            return true;
-        }
-        else
-        {
-            // The record is not valid, jump to the next.
-            p_next_rec += (FDS_HEADER_SIZE + (p_header->length_words));
+            case FDS_HEADER_VALID:
+                *p_record = (uint32_t*)p_header;
+                return true;
+
+            case FDS_HEADER_DIRTY:
+                p_header = header_jump(p_header);
+                break;
+
+            case FDS_HEADER_CORRUPT:
+                // We can't reliably jump over this record.
+                // There is nothing more we can do on this page.
+                return false;
         }
     }
 
@@ -465,7 +492,7 @@ static ret_code_t record_find(uint16_t          const * p_file_id,
                               fds_record_desc_t       * p_desc,
                               fds_find_token_t        * p_token)
 {
-    if (!flag_is_set(FDS_FLAG_INITIALIZED))
+    if (!m_flags.initialized)
     {
         return FDS_ERR_NOT_INITIALIZED;
     }
@@ -519,80 +546,95 @@ static ret_code_t record_find(uint16_t          const * p_file_id,
 }
 
 
-// Retrieve basic statistics about dirty records on a page.
-static void dirty_records_stat(uint16_t         page,
-                               uint16_t * const p_dirty_records,
-                               uint16_t * const p_word_count)
+// Retrieve statistics about dirty records on a page.
+static void records_stat(uint16_t   page,
+                         uint16_t * p_valid_records,
+                         uint16_t * p_dirty_records,
+                         uint16_t * p_freeable_words,
+                         bool     * p_corruption)
 {
-    fds_header_t const * p_header;
-    uint32_t     const * p_rec;
+    fds_header_t const *       p_header   = (fds_header_t*)(m_pages[page].p_addr + FDS_PAGE_TAG_SIZE);
+    uint32_t     const * const p_page_end = (m_pages[page].p_addr + FDS_PAGE_SIZE);
 
-    p_rec = m_pages[page].p_addr + FDS_PAGE_TAG_SIZE;
-
-    while ((p_rec < (m_pages[page].p_addr + FDS_PAGE_SIZE)) &&
-           (*p_rec != FDS_ERASED_WORD))
+    while (header_has_next(p_header, p_page_end))
     {
-        p_header = (fds_header_t*)p_rec;
-
-        if (!header_is_valid(p_header))
+        switch (header_check(p_header, p_page_end))
         {
-            (*p_dirty_records) += 1;
-            (*p_word_count)    += FDS_HEADER_SIZE + p_header->length_words;
+            case FDS_HEADER_DIRTY:
+                *p_dirty_records  += 1;
+                *p_freeable_words += FDS_HEADER_SIZE + p_header->length_words;
+                p_header = header_jump(p_header);
+                break;
+
+            case FDS_HEADER_VALID:
+                *p_valid_records += 1;
+                p_header = header_jump(p_header);
+                break;
+
+            case FDS_HEADER_CORRUPT:
+            {
+                *p_dirty_records  += 1;
+                *p_freeable_words += (p_page_end - (uint32_t*)p_header);
+                *p_corruption      = true;
+                // We can't continue on this page.
+                return;
+            }
+
+            default:
+                break;
         }
-
-        p_rec += (FDS_HEADER_SIZE + (p_header->length_words));
     }
 }
 
 
-// Advances one position in the queue.
-// Returns true if the queue is not empty.
-static bool queue_advance(void)
+// Get a buffer on the queue of operations.
+static fds_op_t * queue_buf_get(nrf_atfifo_item_put_t * p_iput_ctx)
 {
-    // Reset the current element.
-    memset(&m_op_queue.op[m_op_queue.rp], 0x00, sizeof(fds_op_t));
+    fds_op_t * const p_op = (fds_op_t*) nrf_atfifo_item_alloc(m_queue, p_iput_ctx);
 
-    if (m_op_queue.count != 0)
-    {
-        // Advance in the queue, wrapping around if necessary.
-        m_op_queue.rp = (m_op_queue.rp + 1) % FDS_OP_QUEUE_SIZE;
-        m_op_queue.count--;
-    }
-
-    return (m_op_queue.count != 0);
+    memset(p_op, 0x00, sizeof(fds_op_t));
+    return p_op;
 }
 
 
-// Enqueue an operation.
-static bool op_enqueue(fds_op_t const * p_op)
+// Commit a buffer to the queue of operations.
+static void queue_buf_store(nrf_atfifo_item_put_t * p_iput_ctx)
 {
-    uint32_t idx;
-    bool     ret = false;
+    (void) nrf_atfifo_item_put(m_queue, p_iput_ctx);
+}
 
-    CRITICAL_SECTION_ENTER();
-    if  (m_op_queue.count    <= FDS_OP_QUEUE_SIZE - 1)
-    {
-        idx = (m_op_queue.count + m_op_queue.rp) % FDS_OP_QUEUE_SIZE;
 
-        m_op_queue.op[idx] = *p_op;
-        m_op_queue.count++;
+// Load the next operation from the queue.
+static fds_op_t * queue_load(nrf_atfifo_item_get_t * p_iget_ctx)
+{
+    return (fds_op_t*) nrf_atfifo_item_get(m_queue, p_iget_ctx);
+}
 
-        ret = true;
-    }
-    CRITICAL_SECTION_EXIT();
 
-    return ret;
+// Free the currently loaded operation.
+static void queue_free(nrf_atfifo_item_get_t * p_iget_ctx)
+{
+    // Free the current queue element.
+    (void) nrf_atfifo_item_free(m_queue, p_iget_ctx);
+}
+
+
+static bool queue_has_next(void)
+{
+    // Decrement the number of queued operations.
+    ASSERT(m_queued_op_cnt != 0);
+    return nrf_atomic_u32_sub(&m_queued_op_cnt, 1);
 }
 
 
 // This function is called during initialization to setup the page structure (m_pages) and
 // provide additional information regarding eventual further initialization steps.
-static fds_init_opts_t pages_init()
+static fds_init_opts_t pages_init(void)
 {
-    uint32_t ret = NO_PAGES;
-    // The index of the page being initialized in m_pages[].
-    uint16_t page = 0;
-    bool     swap_set_but_not_found  = false;
+    uint32_t ret                    = NO_PAGES;
+    uint16_t page                   = 0;
+    uint16_t total_pages_available  = FDS_VIRTUAL_PAGES;
+    bool     swap_set_but_not_found = false;
 
     for (uint16_t i = 0; i < FDS_VIRTUAL_PAGES; i++)
     {
@@ -602,6 +644,7 @@ static fds_init_opts_t pages_init()
         switch (page_type)
         {
             case FDS_PAGE_UNDEFINED:
+            {
                 if (page_is_erased(p_page_addr))
                 {
                     if (m_swap_page.p_addr != NULL)
@@ -629,24 +672,30 @@ static fds_init_opts_t pages_init()
                 }
                 else
                 {
+                    // The page contains non-FDS data.
                     // Do not initialize or use this page.
-                    m_pages[page++].page_type = FDS_PAGE_UNDEFINED;
+                    total_pages_available--;
+                    m_pages[page].p_addr    = p_page_addr;
+                    m_pages[page].page_type = FDS_PAGE_UNDEFINED;
+                    page++;
                 }
-                break;
+            } break;
 
             case FDS_PAGE_DATA:
+            {
                 m_pages[page].page_type = FDS_PAGE_DATA;
                 m_pages[page].p_addr    = p_page_addr;
+
                 // Scan the page to compute its write offset and determine whether or not the page
                 // can be garbage collected. Additionally, update the latest kwown record ID.
                 page_scan(p_page_addr, &m_pages[page].write_offset, &m_pages[page].can_gc);
 
                 ret |= PAGE_DATA;
                 page++;
-
-                break;
+            } break;
 
             case FDS_PAGE_SWAP:
+            {
                 if (swap_set_but_not_found)
                 {
                     m_pages[page].page_type    = FDS_PAGE_ERASED;
@@ -663,12 +712,17 @@ static fds_init_opts_t pages_init()
 
                 ret |= (m_swap_page.write_offset == FDS_PAGE_TAG_SIZE) ?
                         PAGE_SWAP_CLEAN : PAGE_SWAP_DIRTY;
-                break;
+            } break;
 
             default:
                 // Shouldn't happen.
                 break;
         }
+    }
+
+    if (total_pages_available < 2)
+    {
+        ret &= NO_PAGES;
     }
 
     return (fds_init_opts_t)ret;
@@ -693,10 +747,11 @@ static ret_code_t record_header_write_begin(fds_op_t * const p_op, uint32_t * co
 static ret_code_t record_header_write_id(fds_op_t * const p_op, uint32_t * const p_addr)
 {
     ret_code_t ret;
+
     // If this record has no data, write the last part of the header directly.
     // Otherwise, write the record data next.
-    p_op->write.step = (p_op->write.p_data != NULL) ? FDS_OP_WRITE_DATA :
-                                                      FDS_OP_WRITE_HEADER_FINALIZE;
+    p_op->write.step = (p_op->write.p_data != NULL) ?
+                        FDS_OP_WRITE_DATA : FDS_OP_WRITE_HEADER_FINALIZE;
 
     ret = nrf_fstorage_write(&m_fs, (uint32_t)(p_addr + FDS_OFFSET_ID),
         &p_op->write.header.record_id, FDS_HEADER_SIZE_ID * sizeof(uint32_t), NULL);
@@ -711,8 +766,8 @@ static ret_code_t record_header_write_finalize(fds_op_t * const p_op, uint32_t *
 
     // If this is a simple write operation, then this is the last step.
     // If this is an update instead, delete the old record next.
-    p_op->write.step = (p_op->op_code == FDS_OP_UPDATE) ? FDS_OP_WRITE_FLAG_DIRTY :
-                                                          FDS_OP_WRITE_DONE;
+    p_op->write.step = (p_op->op_code == FDS_OP_UPDATE) ?
+                        FDS_OP_WRITE_FLAG_DIRTY : FDS_OP_WRITE_DONE;
 
     ret = nrf_fstorage_write(&m_fs, (uint32_t)(p_addr + FDS_OFFSET_IC),
         &p_op->write.header.file_id, FDS_HEADER_SIZE_IC * sizeof(uint32_t), NULL);
@@ -728,8 +783,10 @@ static ret_code_t record_header_flag_dirty(uint32_t * const p_record, uint16_t p
     __ALIGN(4) static uint32_t const dirty_header = {0xFFFF0000};
 
     // Flag the record as dirty.
-    ret_code_t ret = nrf_fstorage_write(&m_fs, (uint32_t)p_record,
-                            &dirty_header, FDS_HEADER_SIZE_TL * sizeof(uint32_t), NULL);
+    ret_code_t ret;
+
+    ret = nrf_fstorage_write(&m_fs, (uint32_t)p_record,
+        &dirty_header, FDS_HEADER_SIZE_TL * sizeof(uint32_t), NULL);
 
     if (ret != NRF_SUCCESS)
     {
@@ -810,15 +867,13 @@ static ret_code_t record_write_data(fds_op_t * const p_op, uint32_t * const p_ad
     p_op->write.step = FDS_OP_WRITE_HEADER_FINALIZE;
 
     ret = nrf_fstorage_write(&m_fs, (uint32_t)(p_addr + FDS_OFFSET_DATA),
-                             p_op->write.p_data,  p_op->write.header.length_words * sizeof(uint32_t), NULL);
+        p_op->write.p_data,  p_op->write.header.length_words * sizeof(uint32_t), NULL);
 
     return (ret == NRF_SUCCESS) ? FDS_SUCCESS : FDS_ERR_BUSY;
 }
 
 
-
 #if (FDS_CRC_CHECK_ON_READ)
-
 static bool crc_verify_success(uint16_t crc, uint16_t len_words, uint32_t const * const p_data)
 {
     uint16_t computed_crc;
@@ -834,7 +889,6 @@ static bool crc_verify_success(uint16_t crc, uint16_t len_words, uint32_t const 
 
     return (computed_crc == crc);
 }
-
 #endif
 
 
@@ -898,8 +952,9 @@ static ret_code_t gc_page_erase(void)
 
     if (m_pages[gc].records_open == 0)
     {
-        ret = nrf_fstorage_erase(&m_fs, (uint32_t)m_pages[gc].p_addr, FDS_PHY_PAGES_IN_VPAGE, NULL);
         m_gc.state = GC_ERASE_PAGE;
+
+        ret = nrf_fstorage_erase(&m_fs, (uint32_t)m_pages[gc].p_addr, FDS_PHY_PAGES_IN_VPAGE, NULL);
     }
     else
     {
@@ -1029,7 +1084,7 @@ static void gc_state_advance(void)
 
         // Swap was discarded because the page being GC'ed had open records.
         case GC_DISCARD_SWAP:
-        // Swap was sucessfully promoted.
+        // Swap was successfully promoted.
         case GC_PROMOTE_SWAP:
             // Prepare to tag the page just GC'ed as swap.
             m_gc.state = GC_TAG_NEW_SWAP;
@@ -1054,17 +1109,18 @@ static ret_code_t init_execute(uint32_t prev_ret, fds_op_t * const p_op)
     if (prev_ret != NRF_SUCCESS)
     {
         // A previous operation has timed out.
-        flag_clear(FDS_FLAG_INITIALIZING);
+        m_flags.initializing = false;
         return FDS_ERR_OPERATION_TIMEOUT;
     }
 
     switch (p_op->init.step)
     {
         case FDS_OP_INIT_TAG_SWAP:
+        {
             // The page write offset was determined previously by pages_init().
-            ret             = page_tag_write_swap();
             p_op->init.step = FDS_OP_INIT_TAG_DATA;
-            break;
+            ret             = page_tag_write_swap();
+        } break;
 
         case FDS_OP_INIT_TAG_DATA:
         {
@@ -1074,30 +1130,33 @@ static ret_code_t init_execute(uint32_t prev_ret, fds_op_t * const p_op)
             {
                 if (m_pages[i].page_type == FDS_PAGE_ERASED)
                 {
-                    ret = page_tag_write_data(m_pages[i].p_addr);
                     m_pages[i].page_type = FDS_PAGE_DATA;
                     write_reqd           = true;
+                    ret = page_tag_write_data(m_pages[i].p_addr);
                     break;
                 }
             }
             if (!write_reqd)
             {
-                flag_set(FDS_FLAG_INITIALIZED);
-                flag_clear(FDS_FLAG_INITIALIZING);
+                m_flags.initialized  = true;
+                m_flags.initializing = false;
                 return FDS_OP_COMPLETED;
             }
-        }
-        break;
+        } break;
 
         case FDS_OP_INIT_ERASE_SWAP:
-            ret = nrf_fstorage_erase(&m_fs, (uint32_t)m_swap_page.p_addr, FDS_PHY_PAGES_IN_VPAGE, NULL);
+        {
             // If the swap is going to be discarded then reset its write_offset.
-            m_swap_page.write_offset = FDS_PAGE_TAG_SIZE;
             p_op->init.step          = FDS_OP_INIT_TAG_SWAP;
-            break;
+            m_swap_page.write_offset = FDS_PAGE_TAG_SIZE;
+
+            ret = nrf_fstorage_erase(&m_fs, (uint32_t)m_swap_page.p_addr, FDS_PHY_PAGES_IN_VPAGE, NULL);
+        } break;
 
         case FDS_OP_INIT_PROMOTE_SWAP:
         {
+            p_op->init.step       = FDS_OP_INIT_TAG_SWAP;
+
             // When promoting the swap, keep the write_offset set by pages_init().
             ret = page_tag_write_data(m_swap_page.p_addr);
 
@@ -1113,9 +1172,7 @@ static ret_code_t init_execute(uint32_t prev_ret, fds_op_t * const p_op)
             m_swap_page.write_offset = FDS_PAGE_TAG_SIZE;
 
             m_pages[gc].page_type = FDS_PAGE_DATA;
-            p_op->init.step       = FDS_OP_INIT_TAG_SWAP;
-        }
-        break;
+        } break;
 
         default:
             // Should not happen.
@@ -1125,7 +1182,7 @@ static ret_code_t init_execute(uint32_t prev_ret, fds_op_t * const p_op)
     if (ret != FDS_SUCCESS)
     {
         // fstorage queue was full.
-        flag_clear(FDS_FLAG_INITIALIZING);
+        m_flags.initializing = false;
         return FDS_ERR_BUSY;
     }
 
@@ -1193,8 +1250,8 @@ static ret_code_t write_execute(uint32_t prev_ret, fds_op_t * const p_op)
             break;
 
         case FDS_OP_WRITE_FLAG_DIRTY:
-            ret = record_header_flag_dirty((uint32_t*)desc.p_record, page);
             p_op->write.step = FDS_OP_WRITE_DONE;
+            ret = record_header_flag_dirty((uint32_t*)desc.p_record, page);
             break;
 
         case FDS_OP_WRITE_DONE:
@@ -1239,8 +1296,8 @@ static ret_code_t delete_execute(uint32_t prev_ret, fds_op_t * const p_op)
     switch (p_op->del.step)
     {
         case FDS_OP_DEL_RECORD_FLAG_DIRTY:
-            ret = record_find_and_delete(p_op);
             p_op->del.step = FDS_OP_DEL_DONE;
+            ret = record_find_and_delete(p_op);
             break;
 
         case FDS_OP_DEL_FILE_FLAG_DIRTY:
@@ -1323,62 +1380,94 @@ static ret_code_t gc_execute(uint32_t prev_ret)
 
 static void queue_process(ret_code_t result)
 {
-    ret_code_t         ret;
-    fds_op_t   * const p_op = &m_op_queue.op[m_op_queue.rp];
+    static fds_op_t              * m_p_cur_op;  // Current fds operation.
+    static nrf_atfifo_item_get_t   m_iget_ctx;  // Queue context for the current operation.
 
-    switch (p_op->op_code)
+    while (true)
     {
-        case FDS_OP_INIT:
-            ret = init_execute(result, p_op);
-            break;
+        if (m_p_cur_op == NULL)
+        {
+            // Load the next from the queue if no operation is being executed.
+            m_p_cur_op = queue_load(&m_iget_ctx);
+        }
 
-        case FDS_OP_WRITE:
-        case FDS_OP_UPDATE:
-            ret = write_execute(result, p_op);
-            break;
+        /* We can reach here in three ways:
+         * from queue_start(): something was just queued
+         * from the fstorage event handler: an operation is being executed
+         * looping: we only loop if there are operations still in the queue
+         *
+         * In all these three cases, m_p_cur_op != NULL.
+         */
+        ASSERT(m_p_cur_op != NULL);
 
-        case FDS_OP_DEL_RECORD:
-        case FDS_OP_DEL_FILE:
-            ret = delete_execute(result, p_op);
-            break;
+        switch (m_p_cur_op->op_code)
+        {
+            case FDS_OP_INIT:
+                result = init_execute(result, m_p_cur_op);
+                break;
 
-        case FDS_OP_GC:
-            ret = gc_execute(result);
-            break;
+            case FDS_OP_WRITE:
+            case FDS_OP_UPDATE:
+                result = write_execute(result, m_p_cur_op);
+                break;
 
-        default:
-            ret = FDS_ERR_INTERNAL;
-            break;
-    }
+            case FDS_OP_DEL_RECORD:
+            case FDS_OP_DEL_FILE:
+                result = delete_execute(result, m_p_cur_op);
+                break;
 
-    if (ret != FDS_OP_EXECUTING)
-    {
+            case FDS_OP_GC:
+                result = gc_execute(result);
+                break;
+
+            default:
+                result = FDS_ERR_INTERNAL;
+                break;
+        }
+
+        if (result == FDS_OP_EXECUTING)
+        {
+            // The operation has not completed yet. Wait for the next system event.
+            break;
+        }
+
+        // The operation has completed (either successfully or with an error).
+        // - send an event to the user
+        // - free the operation buffer
+        // - execute any other queued operations
+
         fds_evt_t evt;
+        memset(&evt, 0x00, sizeof(evt));
 
-        if (ret == FDS_OP_COMPLETED)
+        if (result == FDS_OP_COMPLETED)
         {
             evt.result = FDS_SUCCESS;
+            result     = NRF_SUCCESS;
         }
         else
         {
-            // Either FDS_ERR_BUSY, FDS_ERR_OPERATION_TIMEOUT,
-            // FDS_ERR_CRC_CHECK_FAILED or FDS_ERR_NOT_FOUND.
-            evt.result = ret;
+            // The operation failed for one of the following reasons:
+            // FDS_ERR_BUSY              - flash subsystem can't accept the operation
+            // FDS_ERR_OPERATION_TIMEOUT - flash subsystem timed out
+            // FDS_ERR_CRC_CHECK_FAILED  - a CRC check failed
+            // FDS_ERR_NOT_FOUND         - no record found (delete/update)
+            evt.result = result;
         }
 
-        event_prepare(p_op, &evt);
+        event_prepare(m_p_cur_op, &evt);
         event_send(&evt);
 
-        // Advance the queue, and if there are any queued operations, process them.
-        if (queue_advance())
+        // Zero the pointer to the current operation so that this function
+        // will fetch a new one from the queue next time it is run.
+        m_p_cur_op = NULL;
+
+        // Free the queue element used by the current operation.
+        queue_free(&m_iget_ctx);
+
+        if (!queue_has_next())
         {
-            queue_process(NRF_SUCCESS);
-        }
-        else
-        {
-            // No more elements in the queue. Clear the FDS_FLAG_PROCESSING flag,
-            // so that new operation can start processing the queue.
-            flag_clear(FDS_FLAG_PROCESSING);
+            // No more elements left. Nothing to do.
+            break;
         }
     }
 }
@@ -1386,9 +1475,8 @@ static void queue_process(ret_code_t result)
 
 static void queue_start(void)
 {
-    if (!flag_is_set(FDS_FLAG_PROCESSING))
+    if (!nrf_atomic_u32_fetch_add(&m_queued_op_cnt, 1))
     {
-        flag_set(FDS_FLAG_PROCESSING);
         queue_process(NRF_SUCCESS);
     }
 }
@@ -1406,13 +1494,14 @@ static ret_code_t write_enqueue(fds_record_desc_t         * const p_desc,
                                 fds_reserve_token_t const * const p_tok,
                                 fds_op_code_t                     op_code)
 {
-    ret_code_t ret;
-    fds_op_t   op;
-    uint16_t   page;
-    uint16_t   crc          = 0;
-    uint16_t   length_words = 0;
+    ret_code_t              ret;
+    uint16_t                page;
+    uint16_t                crc          = 0;
+    uint16_t                length_words = 0;
+    fds_op_t              * p_op;
+    nrf_atfifo_item_put_t   iput_ctx;
 
-    if (!flag_is_set(FDS_FLAG_INITIALIZED))
+    if (!m_flags.initialized)
     {
         return FDS_ERR_NOT_INITIALIZED;
     }
@@ -1433,7 +1522,7 @@ static ret_code_t write_enqueue(fds_record_desc_t         * const p_desc,
         return FDS_ERR_UNALIGNED_ADDR;
     }
 
-    // No space was previously reserved for this operation.
+    // No space was previously reserved in flash for this operation.
     if (p_tok == NULL)
     {
         // Find a page where to write data.
@@ -1453,53 +1542,54 @@ static ret_code_t write_enqueue(fds_record_desc_t         * const p_desc,
         length_words = p_tok->length_words;
     }
 
+    // Get a buffer on the queue of operations.
+    p_op = queue_buf_get(&iput_ctx);
+    if (p_op == NULL)
+    {
+        CRITICAL_SECTION_ENTER();
+        write_space_free(length_words, page);
+        CRITICAL_SECTION_EXIT();
+        return FDS_ERR_NO_SPACE_IN_QUEUES;
+    }
+
     // Initialize the operation.
-    op.op_code                   = op_code;
-    op.write.step                = FDS_OP_WRITE_HEADER_BEGIN;
-    op.write.page                = page;
-    op.write.p_data              = p_record->data.p_data;
-    op.write.header.record_id    = record_id_new();
-    op.write.header.file_id      = p_record->file_id;
-    op.write.header.record_key   = p_record->key;
-    op.write.header.length_words = length_words;
+    p_op->op_code                   = op_code;
+    p_op->write.step                = FDS_OP_WRITE_HEADER_BEGIN;
+    p_op->write.page                = page;
+    p_op->write.p_data              = p_record->data.p_data;
+    p_op->write.header.record_id    = record_id_new();
+    p_op->write.header.file_id      = p_record->file_id;
+    p_op->write.header.record_key   = p_record->key;
+    p_op->write.header.length_words = length_words;
 
     if (op_code == FDS_OP_UPDATE)
     {
-        op.write.step             = FDS_OP_WRITE_FIND_RECORD;
+        p_op->write.step             = FDS_OP_WRITE_FIND_RECORD;
         // Save the record ID of the record to be updated.
-        op.write.record_to_delete = p_desc->record_id;
+        p_op->write.record_to_delete = p_desc->record_id;
     }
 
 #if (FDS_CRC_CHECK_ON_READ)
     // First, compute the CRC for the first 6 bytes of the header which contain the
     // record key, length and file ID, then, compute the CRC of the record ID (4 bytes).
-    crc = crc16_compute((uint8_t*)&op.write.header,           6, NULL);
-    crc = crc16_compute((uint8_t*)&op.write.header.record_id, 4, &crc);
+    crc = crc16_compute((uint8_t*)&p_op->write.header,           6, NULL);
+    crc = crc16_compute((uint8_t*)&p_op->write.header.record_id, 4, &crc);
 
     // Compute the CRC for the record data.
     crc = crc16_compute((uint8_t*)p_record->data.p_data,
                         p_record->data.length_words * sizeof(uint32_t), &crc);
 #endif
 
-    op.write.header.crc16 = crc;
+    p_op->write.header.crc16 = crc;
 
-    // Attempt to enqueue the operation.
-    if (!op_enqueue(&op))
-    {
-        // No space availble in the queues. Cancel the reservation of flash space.
-        CRITICAL_SECTION_ENTER();
-        write_space_free(length_words, page);
-        CRITICAL_SECTION_EXIT();
-
-        return FDS_ERR_NO_SPACE_IN_QUEUES;
-    }
+    queue_buf_store(&iput_ctx);
 
      // Initialize the record descriptor, if provided.
     if (p_desc != NULL)
     {
         p_desc->p_record       = NULL;
         // Don't invoke record_id_new() again !
-        p_desc->record_id      = op.write.header.record_id;
+        p_desc->record_id      = p_op->write.header.record_id;
         p_desc->record_is_open = false;
         p_desc->gc_run_count   = m_gc.run_count;
     }
@@ -1515,7 +1605,6 @@ ret_code_t fds_register(fds_cb_t cb)
 {
     ret_code_t ret;
 
-    CRITICAL_SECTION_ENTER();
     if (m_users == FDS_MAX_USERS)
     {
         ret = FDS_ERR_USER_LIMIT_REACHED;
@@ -1523,21 +1612,25 @@ ret_code_t fds_register(fds_cb_t cb)
     else
     {
         m_cb_table[m_users] = cb;
-        m_users++;
+        (void) nrf_atomic_u32_add(&m_users, 1);
 
         ret = FDS_SUCCESS;
     }
-    CRITICAL_SECTION_EXIT();
 
     return ret;
 }
 
 
-static uint32_t flash_end_addr()
+static uint32_t flash_end_addr(void)
 {
     uint32_t const bootloader_addr = NRF_UICR->NRFFW[0];
     uint32_t const page_sz         = NRF_FICR->CODEPAGESIZE;
+#ifndef NRF52810_XXAA
     uint32_t const code_sz         = NRF_FICR->CODESIZE;
+#else
+    // Number of flash pages, necessary to emulate the NRF52810 on NRF52832.
+    uint32_t const code_sz         = 48;
+#endif
 
     return (bootloader_addr != 0xFFFFFFFF) ? bootloader_addr : (code_sz * page_sz);
 }
@@ -1551,48 +1644,60 @@ static void flash_bounds_set(void)
 }
 
 
+static ret_code_t flash_subsystem_init(void)
+{
+    flash_bounds_set();
+
+    #if   (FDS_BACKEND == NRF_FSTORAGE_SD)
+        return nrf_fstorage_init(&m_fs, &nrf_fstorage_sd, NULL);
+    #elif (FDS_BACKEND == NRF_FSTORAGE_NVMC)
+        return nrf_fstorage_init(&m_fs, &nrf_fstorage_nvmc, NULL);
+    #else
+        #error Invalid FDS_BACKEND.
+    #endif
+}
+
+
+static void queue_init(void)
+{
+    (void) NRF_ATFIFO_INIT(m_queue);
+}
+
+
 ret_code_t fds_init(void)
 {
     ret_code_t ret;
     fds_evt_t const evt_success =
     {
         .id     = FDS_EVT_INIT,
-        .result = FDS_SUCCESS
+        .result = FDS_SUCCESS,
     };
 
-    // No initialization is necessary. Notify the application immediately.
-    if (flag_is_set(FDS_FLAG_INITIALIZED))
+    if (m_flags.initialized)
     {
+        // No initialization is necessary. Notify the application immediately.
         event_send(&evt_success);
         return FDS_SUCCESS;
     }
 
-    if (flag_is_set(FDS_FLAG_INITIALIZING))
+    if (nrf_atomic_flag_set_fetch(&m_flags.initializing))
     {
+        // If we were already initializing, return.
         return FDS_SUCCESS;
     }
 
-    flag_set(FDS_FLAG_INITIALIZING);
+    // Otherwise, the flag is set and we proceed to initialization.
 
-    flash_bounds_set();
-
-#if   (FDS_BACKEND == NRF_FSTORAGE_SD)
-    ret = nrf_fstorage_init(&m_fs, &nrf_fstorage_sd, NULL);
-#elif (FDS_BACKEND == NRF_FSTORAGE_NVMC)
-    ret = nrf_fstorage_init(&m_fs, &nrf_fstorage_nvmc, NULL);
-#else
-    #error Invalid FDS_BACKEND.
-#endif
-
+    ret = flash_subsystem_init();
     if (ret != NRF_SUCCESS)
     {
         return ret;
     }
 
+    queue_init();
+
     // Initialize the page structure (m_pages), and determine which
     // initialization steps are required given the current state of the filesystem.
-    fds_op_t op;
-    op.op_code = FDS_OP_INIT;
 
     fds_init_opts_t init_opts = pages_init();
 
@@ -1603,29 +1708,49 @@ ret_code_t fds_init(void)
             return FDS_ERR_NO_PAGES;
 
         case ALREADY_INSTALLED:
+        {
             // No initialization is necessary. Notify the application immediately.
-            flag_set(FDS_FLAG_INITIALIZED);
-            flag_clear(FDS_FLAG_INITIALIZING);
+            m_flags.initialized  = true;
+            m_flags.initializing = false;
             event_send(&evt_success);
             return FDS_SUCCESS;
+        }
 
+        default:
+            break;
+    }
+
+    // A write operation is necessary to initialize the fileystem.
+
+    nrf_atfifo_item_put_t iput_ctx;
+
+    fds_op_t * p_op = queue_buf_get(&iput_ctx);
+    if (p_op == NULL)
+    {
+        return FDS_ERR_NO_SPACE_IN_QUEUES;
+    }
+
+    p_op->op_code = FDS_OP_INIT;
+
+    switch (init_opts)
+    {
         case FRESH_INSTALL:
         case TAG_SWAP:
-            op.init.step = FDS_OP_INIT_TAG_SWAP;
+            p_op->init.step = FDS_OP_INIT_TAG_SWAP;
             break;
 
         case PROMOTE_SWAP:
         case PROMOTE_SWAP_INST:
-            op.init.step = FDS_OP_INIT_PROMOTE_SWAP;
+            p_op->init.step = FDS_OP_INIT_PROMOTE_SWAP;
             break;
 
         case DISCARD_SWAP:
-            op.init.step = FDS_OP_INIT_ERASE_SWAP;
+            p_op->init.step = FDS_OP_INIT_ERASE_SWAP;
             break;
 
         case TAG_DATA:
         case TAG_DATA_INST:
-            op.init.step = FDS_OP_INIT_TAG_DATA;
+            p_op->init.step = FDS_OP_INIT_TAG_DATA;
             break;
 
         default:
@@ -1633,9 +1758,7 @@ ret_code_t fds_init(void)
             break;
     }
 
-    // This cannot fail since it will be the first operation in the queue.
-    (void)op_enqueue(&op);
-
+    queue_buf_store(&iput_ctx);
     queue_start();
 
     return FDS_SUCCESS;
@@ -1666,9 +1789,7 @@ ret_code_t fds_record_open(fds_record_desc_t  * const p_desc,
         }
 #endif
 
-        CRITICAL_SECTION_ENTER();
-        m_pages[page].records_open++;
-        CRITICAL_SECTION_EXIT();
+        (void) nrf_atomic_u32_add(&m_pages[page].records_open, 1);
 
         // Initialize p_flash_rec.
         p_flash_rec->p_header = p_header;
@@ -1727,7 +1848,7 @@ ret_code_t fds_reserve(fds_reserve_token_t * const p_tok, uint16_t length_words)
     ret_code_t ret;
     uint16_t   page;
 
-    if (!flag_is_set(FDS_FLAG_INITIALIZED))
+    if (!m_flags.initialized)
     {
         return FDS_ERR_NOT_INITIALIZED;
     }
@@ -1753,7 +1874,7 @@ ret_code_t fds_reserve_cancel(fds_reserve_token_t * const p_tok)
 {
     ret_code_t ret;
 
-    if (!flag_is_set(FDS_FLAG_INITIALIZED))
+    if (!m_flags.initialized)
     {
         return FDS_ERR_NOT_INITIALIZED;
     }
@@ -1772,7 +1893,7 @@ ret_code_t fds_reserve_cancel(fds_reserve_token_t * const p_tok)
     fds_page_t const * const p_page = &m_pages[p_tok->page];
 
     CRITICAL_SECTION_ENTER();
-    if (p_page->words_reserved - (FDS_HEADER_SIZE + p_tok->length_words) >= 0)
+    if ((FDS_HEADER_SIZE + p_tok->length_words) <= p_page->words_reserved)
     {
         // Free reserved space.
         write_space_free(p_tok->length_words, p_tok->page);
@@ -1830,9 +1951,10 @@ ret_code_t fds_record_update(fds_record_desc_t       * const p_desc,
 
 ret_code_t fds_record_delete(fds_record_desc_t * const p_desc)
 {
-    fds_op_t op;
+    fds_op_t * p_op;
+    nrf_atfifo_item_put_t iput_ctx;
 
-    if (!flag_is_set(FDS_FLAG_INITIALIZED))
+    if (!m_flags.initialized)
     {
         return FDS_ERR_NOT_INITIALIZED;
     }
@@ -1842,25 +1964,29 @@ ret_code_t fds_record_delete(fds_record_desc_t * const p_desc)
         return FDS_ERR_NULL_ARG;
     }
 
-    op.op_code              = FDS_OP_DEL_RECORD;
-    op.del.step             = FDS_OP_DEL_RECORD_FLAG_DIRTY;
-    op.del.record_to_delete = p_desc->record_id;
-
-    if (op_enqueue(&op))
+    p_op = queue_buf_get(&iput_ctx);
+    if (p_op == NULL)
     {
-        queue_start();
-        return FDS_SUCCESS;
+        return FDS_ERR_NO_SPACE_IN_QUEUES;
     }
 
-   return FDS_ERR_NO_SPACE_IN_QUEUES;
+    p_op->op_code              = FDS_OP_DEL_RECORD;
+    p_op->del.step             = FDS_OP_DEL_RECORD_FLAG_DIRTY;
+    p_op->del.record_to_delete = p_desc->record_id;
+
+    queue_buf_store(&iput_ctx);
+    queue_start();
+
+    return FDS_SUCCESS;
 }
 
 
 ret_code_t fds_file_delete(uint16_t file_id)
 {
-    fds_op_t op;
+    fds_op_t * p_op;
+    nrf_atfifo_item_put_t iput_ctx;
 
-    if (!flag_is_set(FDS_FLAG_INITIALIZED))
+    if (!m_flags.initialized)
     {
         return FDS_ERR_NOT_INITIALIZED;
     }
@@ -1870,44 +1996,52 @@ ret_code_t fds_file_delete(uint16_t file_id)
         return FDS_ERR_INVALID_ARG;
     }
 
-    op.op_code      = FDS_OP_DEL_FILE;
-    op.del.step     = FDS_OP_DEL_FILE_FLAG_DIRTY;
-    op.del.file_id  = file_id;
-
-    if (op_enqueue(&op))
+    p_op = queue_buf_get(&iput_ctx);
+    if (p_op == NULL)
     {
-        queue_start();
-        return FDS_SUCCESS;
+        return FDS_ERR_NO_SPACE_IN_QUEUES;
     }
 
-    return FDS_ERR_NO_SPACE_IN_QUEUES;
+    p_op->op_code      = FDS_OP_DEL_FILE;
+    p_op->del.step     = FDS_OP_DEL_FILE_FLAG_DIRTY;
+    p_op->del.file_id  = file_id;
+
+    queue_buf_store(&iput_ctx);
+    queue_start();
+
+    return FDS_SUCCESS;
 }
 
 
 ret_code_t fds_gc(void)
 {
-    fds_op_t op;
+    fds_op_t * p_op;
+    nrf_atfifo_item_put_t iput_ctx;
 
-    if (!flag_is_set(FDS_FLAG_INITIALIZED))
+    if (!m_flags.initialized)
     {
         return FDS_ERR_NOT_INITIALIZED;
     }
 
-    op.op_code = FDS_OP_GC;
-
-    if (op_enqueue(&op))
+    p_op = queue_buf_get(&iput_ctx);
+    if (p_op == NULL)
     {
-        if (m_gc.state != GC_BEGIN)
-        {
-            // Resume GC by retrying the last step.
-            m_gc.resume = true;
-        }
-
-        queue_start();
-        return FDS_SUCCESS;
+        return FDS_ERR_NO_SPACE_IN_QUEUES;
     }
 
-    return FDS_ERR_NO_SPACE_IN_QUEUES;
+    p_op->op_code = FDS_OP_GC;
+
+    queue_buf_store(&iput_ctx);
+
+    if (m_gc.state != GC_BEGIN)
+    {
+        // Resume GC by retrying the last step.
+        m_gc.resume = true;
+    }
+
+    queue_start();
+
+    return FDS_SUCCESS;
 }
 
 
@@ -1979,7 +2113,7 @@ ret_code_t fds_stat(fds_stat_t * const p_stat)
     // The largest number of free contiguous words on any page.
     uint16_t       contig_words  = 0;
 
-    if (!flag_is_set(FDS_FLAG_INITIALIZED))
+    if (!m_flags.initialized)
     {
         return FDS_ERR_NOT_INITIALIZED;
     }
@@ -1991,27 +2125,32 @@ ret_code_t fds_stat(fds_stat_t * const p_stat)
 
     memset(p_stat, 0x00, sizeof(fds_stat_t));
 
-    for (uint16_t i = 0; i < FDS_DATA_PAGES; i++)
+    p_stat->pages_available = FDS_VIRTUAL_PAGES;
+
+    for (uint16_t page = 0; page < FDS_DATA_PAGES; page++)
     {
-        uint32_t const * p_record   = NULL;
-        uint16_t const   words_used = m_pages[i].write_offset + m_pages[i].words_reserved;
+        uint16_t const words_used = m_pages[page].write_offset + m_pages[page].words_reserved;
 
-        p_stat->open_records   += m_pages[i].records_open;
-        p_stat->words_reserved += m_pages[i].words_reserved;
+        if (page_identify(m_pages[page].p_addr) == FDS_PAGE_UNDEFINED)
+        {
+            p_stat->pages_available--;
+        }
+
+        p_stat->open_records   += m_pages[page].records_open;
+        p_stat->words_reserved += m_pages[page].words_reserved;
         p_stat->words_used     += words_used;
-        contig_words           =  (words_in_page - words_used);
 
+        contig_words = (words_in_page - words_used);
         if (contig_words > p_stat->largest_contig)
         {
             p_stat->largest_contig = contig_words;
         }
 
-        while (record_find_next(i, &p_record))
-        {
-            p_stat->valid_records++;
-        }
-
-        dirty_records_stat(i, &p_stat->dirty_records, &p_stat->freeable_words);
+        records_stat(page,
+                     &p_stat->valid_records,
+                     &p_stat->dirty_records,
+                     &p_stat->freeable_words,
+                     &p_stat->corruption);
     }
 
     return FDS_SUCCESS;

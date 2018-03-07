@@ -40,11 +40,11 @@
 #ifndef APP_USBD_AUDIO_TYPES_H__
 #define APP_USBD_AUDIO_TYPES_H__
 
+#include "app_util.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "app_util.h"
 
 /**
  * @defgroup app_usbd_audio_types USB Audio types

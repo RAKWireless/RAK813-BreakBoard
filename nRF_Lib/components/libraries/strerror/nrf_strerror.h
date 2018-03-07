@@ -75,8 +75,8 @@ char const * nrf_strerror_get(ret_code_t code);
  * but if the string is not found, it returns NULL.
  *
  * @param code  Error code to convert.
- * @return 		Pointer to the printable string.
- *         		If the string is not found, NULL is returned.
+ * @return      Pointer to the printable string.
+ *              If the string is not found, NULL is returned.
  */
 char const * nrf_strerror_find(ret_code_t code);
 

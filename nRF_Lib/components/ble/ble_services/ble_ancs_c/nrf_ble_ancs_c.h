@@ -582,6 +582,10 @@ ret_code_t nrf_ble_ancs_c_handles_assign(ble_ancs_c_t               * p_ancs,
                                          uint16_t const               conn_handle,
                                          ble_ancs_c_service_t const * p_service);
 
+#ifdef __cplusplus
+}
+#endif
+
 #endif // BLE_ANCS_C_H__
 
 /** @} */

@@ -56,8 +56,6 @@
                             (event == NRF_SAADC_EVENT_RESULTDONE ? "NRF_SAADC_EVENT_RESULTDONE" :                   \
                             (event == NRF_SAADC_EVENT_CALIBRATEDONE ? "NRF_SAADC_EVENT_CALIBRATEDONE" :             \
                             (event == NRF_SAADC_EVENT_STOPPED ? "NRF_SAADC_EVENT_STOPPED" : "UNKNOWN EVENT"))))))
-#define EVT_TO_STR_LIMIT(event) (event == NRF_SAADC_LIMIT_LOW ? "NRF_SAADC_LIMIT_LOW" :                                \
-                                (event == NRF_SAADC_LIMIT_HIGH ? "NRF_SAADC_LIMIT_HIGH" : "UNKNOWN EVENT"))
 #else //SAADC_CONFIG_LOG_ENABLED
 #define EVT_TO_STR(event)   ""
 #define NRF_LOG_LEVEL       0
@@ -117,7 +115,7 @@ void SAADC_IRQHandler(void)
     if (nrf_saadc_event_check(NRF_SAADC_EVENT_END))
     {
         nrf_saadc_event_clear(NRF_SAADC_EVENT_END);
-        NRF_LOG_DEBUG("Event: %s.", (uint32_t)EVT_TO_STR(NRF_SAADC_EVENT_END));
+        NRF_LOG_DEBUG("Event: %s.", EVT_TO_STR(NRF_SAADC_EVENT_END));
 
         if (!m_cb.low_power_mode || m_cb.conversions_end)
         {
@@ -148,7 +146,7 @@ void SAADC_IRQHandler(void)
     if (m_cb.low_power_mode && nrf_saadc_event_check(NRF_SAADC_EVENT_STARTED))
     {
         nrf_saadc_event_clear(NRF_SAADC_EVENT_STARTED);
-        NRF_LOG_DEBUG("Event: %s.", (uint32_t)EVT_TO_STR(NRF_SAADC_EVENT_STARTED));
+        NRF_LOG_DEBUG("Event: %s.", EVT_TO_STR(NRF_SAADC_EVENT_STARTED));
 
         if (m_cb.buffer_size_left > m_cb.active_channels)
         {
@@ -180,7 +178,7 @@ void SAADC_IRQHandler(void)
     if (nrf_saadc_event_check(NRF_SAADC_EVENT_CALIBRATEDONE))
     {
         nrf_saadc_event_clear(NRF_SAADC_EVENT_CALIBRATEDONE);
-        NRF_LOG_DEBUG("Event: %s.", (uint32_t)EVT_TO_STR(NRF_SAADC_EVENT_CALIBRATEDONE));
+        NRF_LOG_DEBUG("Event: %s.", EVT_TO_STR(NRF_SAADC_EVENT_CALIBRATEDONE));
         m_cb.adc_state = NRF_SAADC_STATE_IDLE;
 
         nrf_drv_saadc_evt_t evt;
@@ -190,7 +188,7 @@ void SAADC_IRQHandler(void)
     if (nrf_saadc_event_check(NRF_SAADC_EVENT_STOPPED))
     {
         nrf_saadc_event_clear(NRF_SAADC_EVENT_STOPPED);
-        NRF_LOG_DEBUG("Event: %s.", (uint32_t)EVT_TO_STR(NRF_SAADC_EVENT_STOPPED));
+        NRF_LOG_DEBUG("Event: %s.", EVT_TO_STR(NRF_SAADC_EVENT_STOPPED));
         m_cb.adc_state = NRF_SAADC_STATE_IDLE;
     }
     else
@@ -211,7 +209,9 @@ void SAADC_IRQHandler(void)
                 evt.type                  = NRF_DRV_SAADC_EVT_LIMIT;
                 evt.data.limit.channel    = LIMIT_EVENT_TO_CHANNEL(event);
                 evt.data.limit.limit_type = LIMIT_EVENT_TO_LIMIT_TYPE(event);
-                NRF_LOG_DEBUG("Event limit, channel: %d, limit type: %s.", evt.data.limit.channel, (uint32_t)EVT_TO_STR(evt.data.limit.limit_type));
+                NRF_LOG_DEBUG("Event limit, channel: %d, limit type: %d.",
+                                            evt.data.limit.channel,
+                                            evt.data.limit.limit_type);
                 m_cb.event_handler(&evt);
             }
         }

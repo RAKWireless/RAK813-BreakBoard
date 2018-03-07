@@ -52,6 +52,32 @@
 #include "nrf_peripherals.h"
 #include "sdk_errors.h"
 
+#ifdef SPI0_ENABLED
+#define SPI0_INCR SPI0_ENABLED
+#else
+#define SPI0_INCR 0
+#endif
+
+#ifdef SPI1_ENABLED
+#define SPI1_INCR SPI1_ENABLED
+#else
+#define SPI1_INCR 0
+#endif
+
+#ifdef SPI2_ENABLED
+#define SPI2_INCR SPI2_ENABLED
+#else
+#define SPI2_INCR 0
+#endif
+
+#ifdef SPI3_ENABLED
+#define SPI3_INCR SPI3_ENABLED
+#else
+#define SPI3_INCR 0
+#endif
+
+#define ENABLED_SPI_COUNT (SPI0_INCR + SPI1_INCR + SPI2_INCR + SPI3_INCR)
+
 #ifdef SPI_PRESENT
 #include "nrf_spi.h"
 #endif

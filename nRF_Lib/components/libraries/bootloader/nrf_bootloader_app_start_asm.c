@@ -81,7 +81,7 @@ isr_abort
     ALIGN
 }
 
-#elif defined ( __GNUC__ )
+#elif defined ( __GNUC__ ) || defined ( __SES_ARM )
 
 void __attribute__ ((noinline)) nrf_bootloader_app_start_impl(uint32_t start_addr)
 {

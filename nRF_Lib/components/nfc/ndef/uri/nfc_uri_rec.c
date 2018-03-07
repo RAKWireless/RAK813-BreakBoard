@@ -37,6 +37,9 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  */
+#include "sdk_common.h"
+#if NRF_MODULE_ENABLED(NFC_NDEF_URI_REC)
+
 #include <string.h>
 #include "nfc_uri_rec.h"
 #include "nrf_error.h"
@@ -81,3 +84,4 @@ ret_code_t nfc_uri_payload_constructor( uri_payload_desc_t * p_input,
     return NRF_SUCCESS;
 }
 
+#endif // NRF_MODULE_ENABLED(NFC_NDEF_URI_REC)

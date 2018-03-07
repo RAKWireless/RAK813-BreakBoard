@@ -228,6 +228,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
                 // No more records available. Should not happen.
                 APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
             }
+#if !defined (S112)
             else
             {
                 bool is_central =
@@ -238,6 +239,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
                                                p_ble_evt->evt.gap_evt.conn_handle,
                                                is_central);
             }
+#endif // !defined (S112)
 
             break;
 
@@ -280,8 +282,12 @@ uint8_t ble_conn_state_role(uint16_t conn_handle)
         bool central = sdk_mapped_flags_get_by_key(m_bcs.valid_conn_handles,
                                                    m_bcs.flags.central_flags,
                                                    conn_handle);
-
+#if !defined (S112)
         role = central ? BLE_GAP_ROLE_CENTRAL : BLE_GAP_ROLE_PERIPH;
+#else
+        role = BLE_GAP_ROLE_PERIPH;
+        UNUSED_VARIABLE(central);
+#endif // !defined (S112)
     }
 
     return role;

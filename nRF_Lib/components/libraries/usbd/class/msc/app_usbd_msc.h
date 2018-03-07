@@ -40,10 +40,6 @@
 #ifndef APP_USBD_MSC_H__
 #define APP_USBD_MSC_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -59,6 +55,10 @@ extern "C" {
 #include "app_usbd_msc_scsi.h"
 #include "app_usbd_msc_internal.h"
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @defgroup app_usbd_msc USB MSC class

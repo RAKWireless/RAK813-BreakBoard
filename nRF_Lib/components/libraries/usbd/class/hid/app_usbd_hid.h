@@ -40,10 +40,6 @@
 #ifndef APP_USBD_HID_H__
 #define APP_USBD_HID_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -51,6 +47,10 @@ extern "C" {
 #include "nrf_atomic.h"
 #include "app_usbd_hid_types.h"
 #include "app_usbd.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @defgroup app_usbd_hid USB HID class

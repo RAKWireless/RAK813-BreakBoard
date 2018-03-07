@@ -589,7 +589,6 @@ uint32_t dtm_wait(void)
     }
 }
 
-
 uint32_t dtm_cmd(dtm_cmd_t cmd, dtm_freq_t freq, uint32_t length, dtm_pkt_type_t payload)
 {
     // Save specified packet in static variable for tx/rx functions to use.
@@ -599,14 +598,14 @@ uint32_t dtm_cmd(dtm_cmd_t cmd, dtm_freq_t freq, uint32_t length, dtm_pkt_type_t
     m_phys_ch       = freq;
     
     // If 1 Mbit or 2 Mbit radio mode is in use check for Vendor Specific payload.
-    if ((m_radio_mode == RADIO_MODE_MODE_Ble_1Mbit || m_radio_mode == RADIO_MODE_MODE_Ble_2Mbit) && payload == 0x03)
+    if ((m_radio_mode == RADIO_MODE_MODE_Ble_1Mbit || m_radio_mode == RADIO_MODE_MODE_Ble_2Mbit) && payload == DTM_PKT_VENDORSPECIFIC)
     {
         /* Note that in a HCI adaption layer, as well as in the DTM PDU format,
            the value 0x03 is a distinct bit pattern (PRBS15). Even though BLE does not
            support PRBS15, this implementation re-maps 0x03 to DTM_PKT_VENDORSPECIFIC,
            to avoid the risk of confusion, should the code be extended to greater coverage.
         */
-        m_packet_type = DTM_PKT_VENDORSPECIFIC;
+        m_packet_type = DTM_PKT_TYPE_VENDORSPECIFIC;
     }
 
     // Clean out any non-retrieved event that might linger from an earlier test
@@ -814,7 +813,7 @@ uint32_t dtm_cmd(dtm_cmd_t cmd, dtm_freq_t freq, uint32_t length, dtm_pkt_type_t
     if (cmd == LE_TRANSMITTER_TEST)
     {
         // Check for illegal values of m_packet_length. Skip the check if the packet is vendor spesific.
-        if (payload != DTM_PKT_VENDORSPECIFIC && m_packet_length > DTM_PAYLOAD_MAX_SIZE)
+        if (m_packet_type != DTM_PKT_TYPE_VENDORSPECIFIC && m_packet_length > DTM_PAYLOAD_MAX_SIZE)
         {
             // Parameter error
             m_event = LE_TEST_STATUS_EVENT_ERROR;
@@ -822,32 +821,35 @@ uint32_t dtm_cmd(dtm_cmd_t cmd, dtm_freq_t freq, uint32_t length, dtm_pkt_type_t
         }
 
 
-        // Note that PDU uses 4 bits even though BLE DTM uses only 2 (the HCI SDU uses all 4)
-        m_pdu.content[DTM_HEADER_OFFSET] = ((uint8_t)m_packet_type & 0x0F);
         m_pdu.content[DTM_LENGTH_OFFSET] = m_packet_length;
+        // Note that PDU uses 4 bits even though BLE DTM uses only 2 (the HCI SDU uses all 4)
         switch (m_packet_type)
         {
             case DTM_PKT_PRBS9:
+                m_pdu.content[DTM_HEADER_OFFSET] = DTM_PDU_TYPE_PRBS9;
                 // Non-repeated, must copy entire pattern to PDU
                 memcpy(m_pdu.content + DTM_HEADER_SIZE, m_prbs_content, m_packet_length);
                 break;
 
             case DTM_PKT_0X0F:
+                m_pdu.content[DTM_HEADER_OFFSET] = DTM_PDU_TYPE_0X0F;
                 // Bit pattern 00001111 repeated
                 memset(m_pdu.content + DTM_HEADER_SIZE, RFPHY_TEST_0X0F_REF_PATTERN, m_packet_length);
                 break;
 
             case DTM_PKT_0X55:
+                m_pdu.content[DTM_HEADER_OFFSET] = DTM_PDU_TYPE_0X55;
                 // Bit pattern 01010101 repeated
                 memset(m_pdu.content + DTM_HEADER_SIZE, RFPHY_TEST_0X55_REF_PATTERN, m_packet_length);
                 break;
             
             case DTM_PKT_0XFF:
+                m_pdu.content[DTM_HEADER_OFFSET] = DTM_PDU_TYPE_0XFF;
                 // Bit pattern 11111111 repeated. Only available in coded PHY (Long range).
                 memset(m_pdu.content + DTM_HEADER_SIZE, RFPHY_TEST_0XFF_REF_PATTERN, m_packet_length);
                 break;
 
-            case DTM_PKT_VENDORSPECIFIC:
+            case DTM_PKT_TYPE_VENDORSPECIFIC:
                 // The length field is for indicating the vendor specific command to execute.
                 // The frequency field is used for vendor specific options to the command.
                 return dtm_vendor_specific_pkt(length, freq);

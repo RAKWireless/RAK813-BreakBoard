@@ -150,7 +150,9 @@ ret_code_t nrf_drv_comp_init(const nrf_drv_comp_config_t * p_config,
     nrf_comp_main_mode_set(p_config->main_mode);
     nrf_comp_speed_mode_set(p_config->speed_mode);
     nrf_comp_hysteresis_set(p_config->hyst);
+#if defined (COMP_ISOURCE_ISOURCE_Msk)
     nrf_comp_isource_set(p_config->isource);
+#endif
     nrf_comp_shorts_disable(NRF_DRV_COMP_SHORT_STOP_AFTER_CROSS_EVT | NRF_DRV_COMP_SHORT_STOP_AFTER_UP_EVT |
                             NRF_DRV_COMP_SHORT_STOP_AFTER_DOWN_EVT);
     nrf_comp_int_disable(COMP_INTENCLR_CROSS_Msk | COMP_INTENCLR_UP_Msk |

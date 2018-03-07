@@ -45,7 +45,6 @@
 #if NRF_MODULE_ENABLED(BLE_HRS)
 #include "ble_hrs.h"
 #include <string.h>
-#include "ble_l2cap.h"
 #include "ble_srv_common.h"
 
 

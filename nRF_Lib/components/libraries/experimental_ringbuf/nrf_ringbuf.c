@@ -39,6 +39,7 @@
  */
 #include "nrf_ringbuf.h"
 #include "app_util_platform.h"
+#include "nrf_assert.h"
 
 #define WR_OFFSET 0
 #define RD_OFFSET 1
@@ -49,14 +50,18 @@ void nrf_ringbuf_init(nrf_ringbuf_t const * p_ringbuf)
     p_ringbuf->p_cb->rd_idx = 0;
     p_ringbuf->p_cb->tmp_rd_idx = 0;
     p_ringbuf->p_cb->tmp_wr_idx = 0;
-    p_ringbuf->p_cb->flag   = 0;
+    p_ringbuf->p_cb->rd_flag   = 0;
+    p_ringbuf->p_cb->wr_flag   = 0;
 }
 
 ret_code_t nrf_ringbuf_alloc(nrf_ringbuf_t const * p_ringbuf, uint8_t * * pp_data, size_t * p_length, bool start)
 {
+    ASSERT(pp_data);
+    ASSERT(p_length);
+
     if (start)
     {
-        if (nrf_atomic_u32_fetch_add(&p_ringbuf->p_cb->flag, 1 << WR_OFFSET) & (1 << WR_OFFSET))
+        if (nrf_atomic_flag_set_fetch(&p_ringbuf->p_cb->wr_flag))
         {
             return NRF_ERROR_BUSY;
         }
@@ -65,6 +70,10 @@ ret_code_t nrf_ringbuf_alloc(nrf_ringbuf_t const * p_ringbuf, uint8_t * * pp_dat
     if (p_ringbuf->p_cb->tmp_wr_idx - p_ringbuf->p_cb->rd_idx == p_ringbuf->bufsize_mask + 1)
     {
         *p_length = 0;
+        if (start)
+        {
+            UNUSED_RETURN_VALUE(nrf_atomic_flag_clear(&p_ringbuf->p_cb->wr_flag));
+        }
         return NRF_SUCCESS;
     }
 
@@ -91,21 +100,26 @@ ret_code_t nrf_ringbuf_put(nrf_ringbuf_t const * p_ringbuf, size_t length)
 
     p_ringbuf->p_cb->wr_idx    += length;
     p_ringbuf->p_cb->tmp_wr_idx = p_ringbuf->p_cb->wr_idx;
-    if (nrf_atomic_u32_fetch_sub(&p_ringbuf->p_cb->flag, 1 << WR_OFFSET) & (1 << WR_OFFSET))
+    if (nrf_atomic_flag_clear_fetch(&p_ringbuf->p_cb->wr_flag) == 0)
     {
-        return NRF_SUCCESS;
-    }
-    else
-    {
+        /* Flag was already cleared. Suggests misuse. */
         return NRF_ERROR_INVALID_STATE;
     }
+    return NRF_SUCCESS;
 }
 
 ret_code_t nrf_ringbuf_cpy_put(nrf_ringbuf_t const * p_ringbuf,
                                uint8_t const * p_data,
                                size_t * p_length)
 {
-    CRITICAL_REGION_ENTER();
+    ASSERT(p_data);
+    ASSERT(p_length);
+
+    if (nrf_atomic_flag_set_fetch(&p_ringbuf->p_cb->wr_flag))
+    {
+        return NRF_ERROR_BUSY;
+    }
+
     uint32_t available = p_ringbuf->bufsize_mask + 1 -
                                 (p_ringbuf->p_cb->wr_idx -  p_ringbuf->p_cb->rd_idx);
     *p_length = available > *p_length ? *p_length : available;
@@ -113,7 +127,7 @@ ret_code_t nrf_ringbuf_cpy_put(nrf_ringbuf_t const * p_ringbuf,
     uint32_t masked_wr_idx = (p_ringbuf->p_cb->wr_idx & p_ringbuf->bufsize_mask);
     uint32_t trail         = p_ringbuf->bufsize_mask + 1 - masked_wr_idx;
 
-    if ( length > trail)
+    if (length > trail)
     {
         memcpy(&p_ringbuf->p_buffer[masked_wr_idx], p_data, trail);
         length -= trail;
@@ -122,16 +136,20 @@ ret_code_t nrf_ringbuf_cpy_put(nrf_ringbuf_t const * p_ringbuf,
     }
     memcpy(&p_ringbuf->p_buffer[masked_wr_idx], p_data, length);
     p_ringbuf->p_cb->wr_idx += *p_length;
-    CRITICAL_REGION_EXIT();
+
+    UNUSED_RETURN_VALUE(nrf_atomic_flag_clear(&p_ringbuf->p_cb->wr_flag));
 
     return NRF_SUCCESS;
 }
 
 ret_code_t nrf_ringbuf_get(nrf_ringbuf_t const * p_ringbuf, uint8_t * * pp_data, size_t * p_length, bool start)
 {
+    ASSERT(pp_data);
+    ASSERT(p_length);
+
     if (start)
     {
-        if (nrf_atomic_u32_fetch_add(&p_ringbuf->p_cb->flag, 1 << RD_OFFSET) & (1 << RD_OFFSET))
+        if (nrf_atomic_flag_set_fetch(&p_ringbuf->p_cb->rd_flag))
         {
             return NRF_ERROR_BUSY;
         }
@@ -141,7 +159,10 @@ ret_code_t nrf_ringbuf_get(nrf_ringbuf_t const * p_ringbuf, uint8_t * * pp_data,
     if (available == 0)
     {
         *p_length = 0;
-        (void)nrf_atomic_u32_fetch_and(&p_ringbuf->p_cb->flag, ~(1 << RD_OFFSET));
+        if (start)
+        {
+            UNUSED_RETURN_VALUE(nrf_atomic_flag_clear(&p_ringbuf->p_cb->rd_flag));
+        }
         return NRF_SUCCESS;
     }
 
@@ -170,7 +191,14 @@ ret_code_t nrf_ringbuf_cpy_get(nrf_ringbuf_t const * p_ringbuf,
                                uint8_t * p_data,
                                size_t * p_length)
 {
-    CRITICAL_REGION_ENTER();
+    ASSERT(p_data);
+    ASSERT(p_length);
+
+    if (nrf_atomic_flag_set_fetch(&p_ringbuf->p_cb->rd_flag))
+    {
+       return NRF_ERROR_BUSY;
+    }
+
     uint32_t available = p_ringbuf->p_cb->wr_idx -  p_ringbuf->p_cb->rd_idx;
     *p_length = available > *p_length ? *p_length : available;
     size_t   length        = *p_length;
@@ -179,7 +207,7 @@ ret_code_t nrf_ringbuf_cpy_get(nrf_ringbuf_t const * p_ringbuf,
     uint32_t trail         = (masked_wr_idx > masked_rd_idx) ? masked_wr_idx - masked_rd_idx :
                                                       p_ringbuf->bufsize_mask + 1 - masked_rd_idx;
 
-    if ( length > trail)
+    if (length > trail)
     {
         memcpy(&p_ringbuf->p_buffer[masked_rd_idx], p_data, trail);
         length -= trail;
@@ -188,7 +216,8 @@ ret_code_t nrf_ringbuf_cpy_get(nrf_ringbuf_t const * p_ringbuf,
     }
     memcpy(p_data, &p_ringbuf->p_buffer[masked_rd_idx], length);
     p_ringbuf->p_cb->rd_idx += *p_length;
-    CRITICAL_REGION_EXIT();
+
+    UNUSED_RETURN_VALUE(nrf_atomic_flag_clear(&p_ringbuf->p_cb->rd_flag));
 
     return NRF_SUCCESS;
 }
@@ -203,7 +232,7 @@ ret_code_t nrf_ringbuf_free(nrf_ringbuf_t const * p_ringbuf, size_t length)
 
     p_ringbuf->p_cb->rd_idx    += length;
     p_ringbuf->p_cb->tmp_rd_idx = p_ringbuf->p_cb->rd_idx;
-    (void)nrf_atomic_u32_fetch_and(&p_ringbuf->p_cb->flag, ~(1 << RD_OFFSET));
+    UNUSED_RETURN_VALUE(nrf_atomic_flag_clear(&p_ringbuf->p_cb->rd_flag));
+
     return NRF_SUCCESS;
 }
-
