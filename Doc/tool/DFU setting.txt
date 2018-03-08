@@ -1,0 +1,8 @@
+nrfutil pkg generate --hw-version 52 --application-version 1 --application rak815_application_LoRaWANDemo.hex --sd-req 0x9D --key-file private.key rak815_app_package.zip
+
+
+
+nrfutil settings generate --family NRF52 --application rak813_breakboard.hex --application-version 0 --bootloader-version 0 --bl-settings-version 1 bootloader_setting.hex
+
+
+mergehex --merge bootloader_setting.hex rak813_breakboard.hex --output rak815_application_DFU.hex
