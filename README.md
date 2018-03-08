@@ -2,7 +2,7 @@
 <img src="https://raw.githubusercontent.com/RAKWireless/RAK813-BreakBoard/master/Doc/img/substance.jpg" width=50% height=50% /> <br />
 ### chip: RAK813(nRF52832+SX1276) + GPS + HT + MEMS
 #### Support IAR8.11/Keil5
-#### Bace on nRF5_SDK_14.0.0 and semtech LoRaWAN1.0.2
+#### Bace on nRF5_SDK_14.2.0 and semtech LoRaWAN1.0.2
 The document you can download in the RAK Document Center:
 http://www.rakwireless.com/en/download/RAK813%20BreakBoard/Software%20Development
 
