@@ -321,6 +321,7 @@ void u_fs_write_lora_cfg(lora_cfg_t *cfg)
     NRF_LOG_INFO("write %d", rc);
     APP_ERROR_CHECK(rc);
     wait_for_flash_ready(&fstorage);
+    printf("LoRaWAN parameters configured successfully\r\n");
     
 }
 
